@@ -23,6 +23,10 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 - Added `.dockerignore` to make Docker builds agnostic to wether you've ran
   `swag init` locally. (!12)
 
+- Changed base Docker image to be `alpine:3.13.4` instead of `scratch` to get
+  certificates from the Alpine package manager, APK, instead of embedding a
+  list of certificates inside the repository. (#1)
+
 ## v1.1.0 (2021-01-07)
 
 - Fixed bug where GitLab access token was not correctly loaded. (!7, !8)
