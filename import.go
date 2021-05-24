@@ -11,7 +11,7 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
-// RunGitLabHandler godoc
+// runGitLabHandler godoc
 // @Summary Import projects from gitlab or refresh existing one
 // @Accept  json
 // @Produce  json
@@ -20,7 +20,7 @@ import (
 // @Failure 400 "Bad request"
 // @Failure 401 "Unauthorized or missing jwt token"
 // @Router /gitlab [post]
-func RunGitLabHandler(c *gin.Context) {
+func runGitLabHandler(c *gin.Context) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	i := Import{}
@@ -70,7 +70,7 @@ func handleError(c *gin.Context, err error) bool {
 
 type gitLabImporter struct {
 	gitLabClient gitLabFetcher
-	wharfClient  wharfClientApiFetcher
+	wharfClient  wharfClientAPIFetcher
 	mapper       mapper
 }
 
@@ -135,14 +135,14 @@ func obtainProvider(wharfClient *wharfapi.Client, tokenID uint, importData *Impo
 		return provider, nil
 	}
 
-	provider, err := wharfClient.GetProvider(PROVIDER_NAME, importData.URL, "", tokenID)
+	provider, err := wharfClient.GetProvider(ProviderName, importData.URL, "", tokenID)
 	if err != nil || provider.ProviderID == 0 {
 		if authErr, ok := err.(*wharfapi.AuthError); ok {
 			return wharfapi.Provider{}, authErr
 		}
 
 		provider, err = wharfClient.PostProvider(wharfapi.Provider{
-			Name:    PROVIDER_NAME,
+			Name:    ProviderName,
 			URL:     importData.URL,
 			TokenID: tokenID})
 		if err != nil {

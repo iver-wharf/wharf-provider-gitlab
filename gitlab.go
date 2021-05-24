@@ -94,7 +94,7 @@ func (client *gitLabClient) getBuildDefinitionIfExists(projectID int, defaultBra
 
 	ref := defaultBranch
 	opts := &gitlab.GetRawFileOptions{Ref: &ref}
-	bytes, resp, err := client.repositoryFiles.GetRawFile(projectID, BUILD_DEFINITION_FILE_NAME, opts)
+	bytes, resp, err := client.repositoryFiles.GetRawFile(projectID, BuildDefinitionFileName, opts)
 	if resp == nil {
 		return "", err
 	}
@@ -108,7 +108,7 @@ func (client *gitLabClient) getBuildDefinitionIfExists(projectID int, defaultBra
 			WithFields(log.Fields{
 				"project ID":          projectID,
 				"default branch name": defaultBranch,
-				"file name":           BUILD_DEFINITION_FILE_NAME,
+				"file name":           BuildDefinitionFileName,
 				"status code":         resp.StatusCode}).
 			Errorln("unable to get build definition")
 		return "", err

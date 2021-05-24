@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
+	"github.com/iver-wharf/wharf-provider-gitlab/testdoubles"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/xanzy/go-gitlab"
-	"github.com/iver-wharf/wharf-provider-gitlab/testdoubles"
 )
 
 type importTestSuite struct {
@@ -67,7 +67,7 @@ func (suite *importTestSuite) SetupSuite() {
 			Commit:             nil,
 		}}, getSampleGitLabPaging(1), nil)
 
-	wharfClientMock := new(testdoubles.WharfClientApiFetcherMock)
+	wharfClientMock := new(testdoubles.WharfClientAPIFetcherMock)
 	for _, p := range allProjects {
 		wProj := mapToWharfProj(p, suite.data.TokenID, suite.data.ProviderID)
 		wharfClientMock.On("PutProject", mock.MatchedBy(func(proj wharfapi.Project) bool {
@@ -92,7 +92,7 @@ func (suite *importTestSuite) SetupSuite() {
 }
 
 func (suite *importTestSuite) SetupTest() {
-	suite.sut.wharfClient.(*testdoubles.WharfClientApiFetcherMock).Mock.Calls = suite.sut.wharfClient.(*testdoubles.WharfClientApiFetcherMock).Mock.Calls[:0]
+	suite.sut.wharfClient.(*testdoubles.WharfClientAPIFetcherMock).Mock.Calls = suite.sut.wharfClient.(*testdoubles.WharfClientAPIFetcherMock).Mock.Calls[:0]
 
 	suite.data = getTestImportWithoutProjectID()
 }
@@ -107,11 +107,11 @@ func (suite *importTestSuite) TestImportProject() {
 
 	require.Nilf(suite.T(), err, "Import return error: %v", err)
 
-	apiMock := suite.sut.wharfClient.(*testdoubles.WharfClientApiFetcherMock)
+	apiMock := suite.sut.wharfClient.(*testdoubles.WharfClientAPIFetcherMock)
 	apiMock.AssertNumberOfCalls(suite.T(), "PutProject", 1)
 	apiMock.AssertCalled(suite.T(), "PutProject", mock.MatchedBy(func(p wharfapi.Project) bool { return p.Name == "builder" }))
 
-	suite.sut.wharfClient.(*testdoubles.WharfClientApiFetcherMock).AssertNumberOfCalls(suite.T(), "PutBranches", 1)
+	suite.sut.wharfClient.(*testdoubles.WharfClientAPIFetcherMock).AssertNumberOfCalls(suite.T(), "PutBranches", 1)
 }
 
 func (suite *importTestSuite) TestImportGroup() {
@@ -122,7 +122,7 @@ func (suite *importTestSuite) TestImportGroup() {
 	err := suite.sut.importGroup(want)
 	require.Nilf(suite.T(), err, "Import return error: %v", err)
 
-	apiMock := suite.sut.wharfClient.(*testdoubles.WharfClientApiFetcherMock)
+	apiMock := suite.sut.wharfClient.(*testdoubles.WharfClientAPIFetcherMock)
 	apiMock.AssertNumberOfCalls(suite.T(), "PutProject", 3)
 	apiMock.AssertCalled(suite.T(), "PutProject", mock.MatchedBy(func(p wharfapi.Project) bool { return p.Name == "web" }))
 	apiMock.AssertCalled(suite.T(), "PutProject", mock.MatchedBy(func(p wharfapi.Project) bool { return p.Name == "builder" }))
@@ -136,7 +136,7 @@ func (suite *importTestSuite) TestImportAll() {
 	err := suite.sut.importAll()
 	require.Nilf(suite.T(), err, "Import return error: %v", err)
 
-	apiMock := suite.sut.wharfClient.(*testdoubles.WharfClientApiFetcherMock)
+	apiMock := suite.sut.wharfClient.(*testdoubles.WharfClientAPIFetcherMock)
 	apiMock.AssertNumberOfCalls(suite.T(), "PutProject", 6)
 	apiMock.AssertCalled(suite.T(), "PutProject", mock.MatchedBy(func(p wharfapi.Project) bool { return p.Name == "web" }))
 	apiMock.AssertCalled(suite.T(), "PutProject", mock.MatchedBy(func(p wharfapi.Project) bool { return p.Name == "builder" }))
