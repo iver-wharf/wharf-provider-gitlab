@@ -6,7 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func RunGitLabTrigger(c *gin.Context) {
+func runGitLabTriggerHandler(c *gin.Context) {
 	log.Debug("Gitlab triggered")
 
 	var event Event

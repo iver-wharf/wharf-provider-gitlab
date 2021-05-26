@@ -6,7 +6,7 @@ import (
 )
 
 func TestDeserializeRepoUpdate(t *testing.T) {
-	example_update := `
+	exampleUpdate := `
 {
   "event_name": "repository_update",
   "user_id": 1,
@@ -43,7 +43,7 @@ func TestDeserializeRepoUpdate(t *testing.T) {
 
 	var got RepositoryUpdate
 
-	bytes := []byte(example_update)
+	bytes := []byte(exampleUpdate)
 	err := json.Unmarshal(bytes, &got)
 
 	if err != nil {

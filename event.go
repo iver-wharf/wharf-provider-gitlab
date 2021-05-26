@@ -9,8 +9,8 @@ type Change struct {
 type Project struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	Url         string `json:"url"`
-	SshUrl      string `json:"ssh_url"`
+	URL         string `json:"url"`
+	SSHURL      string `json:"ssh_url"`
 	Namespace   string `json:"namespace"`
 }
 

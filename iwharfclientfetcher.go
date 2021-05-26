@@ -2,7 +2,7 @@ package main
 
 import "github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
 
-type wharfClientApiFetcher interface {
+type wharfClientAPIFetcher interface {
 	GetTokenById(tokenID uint) (wharfapi.Token, error)
 	GetToken(token string, userName string) (wharfapi.Token, error)
 	PostToken(token wharfapi.Token) (wharfapi.Token, error)
