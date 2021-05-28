@@ -25,7 +25,7 @@ func loadEmbeddedVersionFile() error {
 // @summary Returns the version of this API
 // @tags meta
 // @success 200 {object} app.Version
-// @router /github/version [get]
+// @router /gitlab/version [get]
 func getVersionHandler(c *gin.Context) {
 	c.JSON(http.StatusOK, AppVersion)
 }

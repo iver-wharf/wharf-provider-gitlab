@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/gin-contrib/cors"
@@ -29,7 +30,12 @@ const ProviderName = "gitlab"
 // @contact.email wharf@iver.se
 // @basePath /import
 func main() {
-	docs.SwaggerInfo.Version = ApiVersion.Version
+	if err := loadEmbeddedVersionFile(); err != nil {
+		fmt.Println("Failed to read embedded version.yaml file:", err)
+		os.Exit(1)
+	}
+
+	docs.SwaggerInfo.Version = AppVersion.Version
 
 	initLogger(log.TraceLevel)
 
