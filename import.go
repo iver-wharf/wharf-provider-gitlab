@@ -16,9 +16,9 @@ import (
 // @Accept  json
 // @Produce  json
 // @Param import body main.Import _ "import object"
-// @Success 200 "OK"
-// @Failure 400 "Bad request"
-// @Failure 401 "Unauthorized or missing jwt token"
+// @Success 201 "Successfully imported"
+// @Failure 400 {object} string "Bad request"
+// @Failure 401 {object} string "Unauthorized or missing jwt token"
 // @Router /gitlab [post]
 func runGitLabHandler(c *gin.Context) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -48,7 +48,7 @@ func runGitLabHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, "OK")
+	c.Status(http.StatusCreated)
 }
 
 func handleError(c *gin.Context, err error) bool {

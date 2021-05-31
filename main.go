@@ -1,12 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
-	_ "github.com/iver-wharf/wharf-provider-gitlab/docs"
+	"github.com/iver-wharf/wharf-provider-gitlab/docs"
 	log "github.com/sirupsen/logrus"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -19,13 +20,23 @@ const BuildDefinitionFileName = ".wharf-ci.yml"
 // ProviderName is a provider name that is used in whole wharf system for GitLab.
 const ProviderName = "gitlab"
 
-// @title Swagger import API
-// @version 1.0
-// @description Wharf import server.
-
-// @Host
-// @BasePath /import
+// @title Wharf provider API for GitLab
+// @description Wharf backend API for integrating GitLab repositories with
+// @description the Wharf main API.
+// @license.name MIT
+// @license.url https://github.com/iver-wharf/wharf-provider-gitlab/blob/master/LICENSE
+// @contact.name Iver Wharf GitLab provider API support
+// @contact.url https://github.com/iver-wharf/wharf-provider-gitlab/issues
+// @contact.email wharf@iver.se
+// @basePath /import
 func main() {
+	if err := loadEmbeddedVersionFile(); err != nil {
+		fmt.Println("Failed to read embedded version.yaml file:", err)
+		os.Exit(1)
+	}
+
+	docs.SwaggerInfo.Version = AppVersion.Version
+
 	initLogger(log.TraceLevel)
 
 	r := gin.Default()
@@ -39,6 +50,7 @@ func main() {
 	r.GET("/", func(c *gin.Context) { c.JSON(200, gin.H{"message": "pong"}) })
 	r.POST("/import/gitlab", runGitLabHandler)
 	r.POST("/import/gitlab/trigger", runGitLabTriggerHandler)
+	r.GET("/import/gitlab/version", getVersionHandler)
 	r.GET("/import/gitlab/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	err := r.Run()
