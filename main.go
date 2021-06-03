@@ -53,7 +53,12 @@ func main() {
 	r.GET("/import/gitlab/version", getVersionHandler)
 	r.GET("/import/gitlab/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	err := r.Run()
+	var bindAddress string
+	var bindAddressDefined bool
+	if bindAddress, bindAddressDefined = os.LookupEnv("BIND_ADDRESS"); !bindAddressDefined {
+		bindAddress = "0.0.0.0:8080"
+	}
+	err := r.Run(bindAddress)
 	if err != nil {
 		log.Infof("unable to run gin, error: %+v\n", err)
 	}
