@@ -12,7 +12,7 @@ RUN deploy/update-version.sh version.yaml \
 		&& CGO_ENABLED=0 go build -o main \
 		&& go test -v
 
-FROM alpine:3.13.4 AS final
+FROM alpine:3.13.5 AS final
 RUN apk add --no-cache ca-certificates
 WORKDIR /app
 COPY --from=build /src/main ./
