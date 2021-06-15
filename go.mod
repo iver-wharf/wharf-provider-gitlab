@@ -3,12 +3,13 @@ module github.com/iver-wharf/wharf-provider-gitlab
 go 1.16
 
 require (
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/gin-contrib/cors v1.3.0
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-openapi/spec v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.6 // indirect
 	github.com/iver-wharf/wharf-api-client-go v1.2.0
-	github.com/iver-wharf/wharf-core v0.0.0-20210526121942-3bdbd8375f14
+	github.com/iver-wharf/wharf-core v0.0.0-20210610091057-c2f9a20c6a64
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.7.0

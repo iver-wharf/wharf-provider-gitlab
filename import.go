@@ -3,6 +3,8 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
+	"github.com/iver-wharf/wharf-core/pkg/ginutil"
+	"github.com/iver-wharf/wharf-core/pkg/problem"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -25,47 +27,89 @@ func runGitLabHandler(c *gin.Context) {
 
 	i := Import{}
 	err := c.BindJSON(&i)
-	if handleError(c, err) {
+	if err != nil {
+		ginutil.WriteInvalidBindError(c, err,
+			"One or more parameters failed to parse when reading the request body for GitHub projects import/refresh")
 		return
 	}
 
 	importer, err := newGitLabImporter(c.GetHeader("Authorization"), &i)
-	if handleError(c, err) {
+	if err != nil {
+		if !handleIfAuthError(c, err) {
+			ginutil.WriteProblemError(c, err, problem.Response{
+				Type: "prob/provider/gitlab/creating-importer-error",
+				Title: "Error creating GitLab importer.",
+				Status: http.StatusBadRequest,
+				Detail: "Creation of GitLab importer failed. Check your settings and make sure they are correct.",
+			})
+		}
+
 		return
 	}
 
 	if i.whatToImport() == importProject {
 		err = importer.importProject(i.Group, i.Project)
+		if err != nil {
+			ginutil.WriteProblemError(c, err, problem.Response{
+				Type: "prob/provider/gitlab/import-project-error",
+				Title: "Error importing GitLab project.",
+				Status: http.StatusBadRequest,
+				Detail: "Unable to import GitLab project.",
+			})
+		}
 	} else if i.whatToImport() == importGroup {
 		err = importer.importGroup(i.Group)
+		if err != nil {
+			ginutil.WriteProblemError(c, err, problem.Response{
+				Type: "prob/provider/gitlab/import-group-error",
+				Title: "Error importing GitLab group.",
+				Status: http.StatusBadRequest,
+				Detail: "Unable to import GitLab group.",
+			})
+		}
 	} else if i.whatToImport() == importAllGroups {
 		err = importer.importAll()
+		if err != nil {
+			ginutil.WriteProblemError(c, err, problem.Response{
+				Type: "prob/provider/gitlab/import-group-error",
+				Title: "Error importing GitLab groups.",
+				Status: http.StatusBadRequest,
+				Detail: "Unable to import GitLab groups.",
+			})
+		}
 	} else {
 		err = fmt.Errorf("invalid import data")
-	}
-
-	if handleError(c, err) {
-		return
+		ginutil.WriteProblemError(c, err, problem.Response{
+			Type: "prob/provider/gitlab/invalid-import-data-error",
+			Title: "Invalid import data.",
+			Status: http.StatusBadRequest,
+			Detail: "Unrecognized import type. Only project, group and all groups is valid.",
+		})
 	}
 
 	c.Status(http.StatusCreated)
 }
 
-func handleError(c *gin.Context, err error) bool {
+func handleIfAuthError(c *gin.Context, err error) bool {
 	if err == nil {
 		return false
 	}
 
 	if authErr, ok := err.(*wharfapi.AuthError); ok {
 		c.Header("WWW-Authenticate", authErr.Realm)
-		c.JSON(http.StatusUnauthorized, "Unauthorized")
-	} else {
-		_ = c.Error(err)
-		c.JSON(http.StatusBadRequest, fmt.Sprintf("Error: %+v", err))
+
+		ginutil.WriteProblem(c, problem.Response{
+			Type: "prob/provider/authentication-error",
+			Title: "Error authenticating.",
+			Status: http.StatusUnauthorized,
+			Detail: "You are not allowed to use this functionality. Please make sure your token is correct.",
+		})
+
+		log.Errorln(err)
+		return true
 	}
 
-	log.Errorln(err)
-	return true
+	return false
 }
 
 type gitLabImporter struct {
