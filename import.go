@@ -3,12 +3,13 @@ package main
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/iver-wharf/wharf-core/pkg/ginutil"
-	"github.com/iver-wharf/wharf-core/pkg/problem"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
+	"github.com/iver-wharf/wharf-core/pkg/ginutil"
+	"github.com/iver-wharf/wharf-core/pkg/problem"
+	"github.com/iver-wharf/wharf-provider-gitlab/helpers/ginutilext"
 	log "github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 )
@@ -19,8 +20,9 @@ import (
 // @Produce  json
 // @Param import body main.Import _ "import object"
 // @Success 201 "Successfully imported"
-// @Failure 400 {object} string "Bad request"
-// @Failure 401 {object} string "Unauthorized or missing jwt token"
+// @Failure 400 {object} problem.Response "Bad request"
+// @Failure 401 {object} problem.Response "Unauthorized or missing jwt token"
+// @Failure 502 {object} problem.Response "Bad gateway"
 // @Router /gitlab [post]
 func runGitLabHandler(c *gin.Context) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -47,44 +49,33 @@ func runGitLabHandler(c *gin.Context) {
 		return
 	}
 
-	if i.whatToImport() == importProject {
+	var detail string
+
+	switch i.whatToImport() {
+	case importProject:
 		err = importer.importProject(i.Group, i.Project)
-		if err != nil {
-			ginutil.WriteProblemError(c, err, problem.Response{
-				Type: "prob/provider/gitlab/import-project-error",
-				Title: "Error importing GitLab project.",
-				Status: http.StatusBadRequest,
-				Detail: "Unable to import GitLab project.",
-			})
-		}
-	} else if i.whatToImport() == importGroup {
+		detail = fmt.Sprintf("Unable to import GitLab project %q", i.Project)
+		break
+	case importGroup:
 		err = importer.importGroup(i.Group)
-		if err != nil {
-			ginutil.WriteProblemError(c, err, problem.Response{
-				Type: "prob/provider/gitlab/import-group-error",
-				Title: "Error importing GitLab group.",
-				Status: http.StatusBadRequest,
-				Detail: "Unable to import GitLab group.",
-			})
-		}
-	} else if i.whatToImport() == importAllGroups {
+		detail = fmt.Sprintf("Unable to import GitLab group %q", i.Group)
+		break
+	case importAllGroups:
 		err = importer.importAll()
-		if err != nil {
-			ginutil.WriteProblemError(c, err, problem.Response{
-				Type: "prob/provider/gitlab/import-group-error",
-				Title: "Error importing GitLab groups.",
-				Status: http.StatusBadRequest,
-				Detail: "Unable to import GitLab groups.",
-			})
-		}
-	} else {
+		detail = "Unable to import GitLab groups"
+		break
+	default:
 		err = fmt.Errorf("invalid import data")
-		ginutil.WriteProblemError(c, err, problem.Response{
-			Type: "prob/provider/gitlab/invalid-import-data-error",
-			Title: "Invalid import data.",
-			Status: http.StatusBadRequest,
-			Detail: "Unrecognized import type. Only project, group and all groups is valid.",
-		})
+		detail = fmt.Sprintf("You need to specify either group, group and project, or neither.\n" +
+			"Specifying only project is invalid.\n" +
+			"Group=%q, Project=%q", i.Group, i.Project)
+		ginutil.WriteInvalidParamError(c, err, "Group or Project", detail)
+		return
+	}
+
+	if err != nil {
+		ginutilext.WriteAPIWriteError(c, err, detail)
+		return
 	}
 
 	c.Status(http.StatusCreated)
@@ -97,13 +88,8 @@ func handleIfAuthError(c *gin.Context, err error) bool {
 
 	if authErr, ok := err.(*wharfapi.AuthError); ok {
 		c.Header("WWW-Authenticate", authErr.Realm)
-
-		ginutil.WriteProblem(c, problem.Response{
-			Type: "prob/provider/authentication-error",
-			Title: "Error authenticating.",
-			Status: http.StatusUnauthorized,
-			Detail: "You are not allowed to use this functionality. Please make sure your token is correct.",
-		})
+		ginutilext.WriteAuthenticationError(c, err,
+			"You are not allowed to use this functionality. Please make sure your token is correct.")
 
 		log.Errorln(err)
 		return true
