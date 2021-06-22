@@ -55,15 +55,12 @@ func runGitLabHandler(c *gin.Context) {
 	case importProject:
 		err = importer.importProject(i.Group, i.Project)
 		detail = fmt.Sprintf("Unable to import GitLab project %q", i.Project)
-		break
 	case importGroup:
 		err = importer.importGroup(i.Group)
 		detail = fmt.Sprintf("Unable to import GitLab group %q", i.Group)
-		break
 	case importAllGroups:
 		err = importer.importAll()
 		detail = "Unable to import GitLab groups"
-		break
 	default:
 		err = fmt.Errorf("invalid import data")
 		detail = fmt.Sprintf("You need to specify either group, group and project, or neither.\n" +
