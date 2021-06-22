@@ -50,7 +50,6 @@ func runGitLabHandler(c *gin.Context) {
 	}
 
 	var detail string
-
 	switch i.whatToImport() {
 	case importProject:
 		err = importer.importProject(i.Group, i.Project)
