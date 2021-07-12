@@ -1,5 +1,5 @@
-- [ ] I've updated the `(WIP)` tag to today's date in `CHANGELOG.md`
-- [ ] I've added the `release` label to this PR
+- \[ ] I've updated the `(WIP)` tag to today's date in `CHANGELOG.md`
+- \[ ] I've added the `release` label to this PR
 
 ## Changes
 
