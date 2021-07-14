@@ -9,7 +9,6 @@ import (
 	"github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
 	"github.com/iver-wharf/wharf-core/pkg/ginutil"
 	"github.com/iver-wharf/wharf-core/pkg/problem"
-	"github.com/iver-wharf/wharf-provider-gitlab/helpers/ginutilext"
 	log "github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 )
@@ -70,7 +69,7 @@ func runGitLabHandler(c *gin.Context) {
 	}
 
 	if err != nil {
-		ginutilext.WriteAPIWriteError(c, err, detail)
+		ginutil.WriteAPIClientWriteError(c, err, detail)
 		return
 	}
 
@@ -84,7 +83,7 @@ func handleIfAuthError(c *gin.Context, err error) bool {
 
 	if authErr, ok := err.(*wharfapi.AuthError); ok {
 		c.Header("WWW-Authenticate", authErr.Realm)
-		ginutilext.WriteAuthenticationError(c, err,
+		ginutil.WriteUnauthorizedError(c, authErr,
 			"You are not allowed to use this functionality. Please make sure your token is correct.")
 
 		log.Errorln(err)
