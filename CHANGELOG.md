@@ -12,6 +12,11 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 	https://changelog.md/
 -->
 
+## v1.3.0 (WIP)
+
+- Changed to return IETF RFC-7807 compatible problem responses on failures
+  instead of solely JSON-formatted strings. (#15)
+
 ## v1.2.0 (2021-07-12)
 
 - Added environment var for setting bind address and port. (#11)
