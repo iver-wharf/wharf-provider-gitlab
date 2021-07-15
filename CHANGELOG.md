@@ -12,7 +12,7 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 	https://changelog.md/
 -->
 
-## v1.2.0 (WIP)
+## v1.2.0 (2021-07-12)
 
 - Added environment var for setting bind address and port. (#11)
 
@@ -24,9 +24,11 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 
 - Changed version of Alpine Docker image used as the base image from 3.13.4
   -> 3.13.5. (#13)
-  
-- Changed to return IETF RFC-7807 compatible problem responses on failures
-  instead of solely JSON-formatted strings. (#15)
+
+- Changed version of Docker base images:
+
+  - Alpine: 3.13.4 -> 3.14.0 (#13, #17)
+  - Golang: 1.16.4 -> 1.16.5 (#17)
 
 ## v1.1.1 (2021-04-09)
 
