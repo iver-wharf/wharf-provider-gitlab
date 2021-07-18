@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+	"github.com/iver-wharf/wharf-core/pkg/ginutil"
 	log "github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 )
@@ -18,14 +20,16 @@ type gitLabClient struct {
 	projects        gitLabProjectsReader
 }
 
-func getGitLabClient(token string, url string) (*gitLabClient, error) {
+func getGitLabClientWritesProblem(c *gin.Context, token string, url string) (*gitLabClient, bool) {
 	git, err := gitlab.NewClient(token, gitlab.WithBaseURL(url))
 	if err != nil {
+		ginutil.WriteInvalidBindError(c, err,
+			"Creating the GitLab client failed because of an invalid URL. Please double check the Upload URL.")
 		log.WithError(err).Fatalf("Failed to create client.")
-		return nil, err
+		return nil, false
 	}
 
-	return &gitLabClient{git, git.RepositoryFiles, git.Branches, git.Projects}, nil
+	return &gitLabClient{git, git.RepositoryFiles, git.Branches, git.Projects}, true
 }
 
 func (client *gitLabClient) listProjects(page int) ([]*gitlab.Project, gitLabPaging, error) {
