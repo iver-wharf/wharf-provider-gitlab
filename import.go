@@ -103,12 +103,12 @@ func obtainTokenWritesProblem(c *gin.Context, wharfClient *wharfapi.Client, impo
 		if err != nil {
 			ginutil.WriteAPIClientReadError(c, err,
 				fmt.Sprintf(
-					"Unable to get token by id %v. Likely because of a failed request or malformed response.",
+					"Unable to get token by ID %d. Likely because of a failed request or malformed response.",
 					importData.TokenID))
 		} else if token.TokenID == 0 {
-			err = fmt.Errorf("token with id %v not found", importData.TokenID)
+			err = fmt.Errorf("token with ID %d not found", importData.TokenID)
 			ginutil.WriteAPIClientReadError(c, err,
-				fmt.Sprintf("Token with id %v not found", importData.TokenID))
+				fmt.Sprintf("Token with ID %d not found.", importData.TokenID))
 		}
 
 		if err != nil {
@@ -143,7 +143,7 @@ func obtainProviderWritesProblem(c *gin.Context, wharfClient *wharfapi.Client, t
 		provider, err := wharfClient.GetProviderById(importData.ProviderID)
 		if err != nil || provider.ProviderID == 0 {
 			ginutil.WriteAPIClientReadError(c, err,
-				fmt.Sprintf("Unable to get provider by id %d.", importData.ProjectID))
+				fmt.Sprintf("Unable to get provider by ID %d.", importData.ProjectID))
 			log.WithError(err).Errorln("unable to get provider")
 			return wharfapi.Provider{}, false
 		}
