@@ -14,6 +14,9 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 
 ## v1.3.0 (WIP)
 
+- Added support for the TZ environment variable (setting timezones ex.
+  `"Europe/Stockholm"`) through the tzdata package. (#20)
+
 - Changed to return IETF RFC-7807 compatible problem responses on failures
   instead of solely JSON-formatted strings. (#15)
 
