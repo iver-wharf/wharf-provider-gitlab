@@ -9,7 +9,7 @@ test: swag
 	go test ./
 
 docker:
-	@echo docker build . \
+	docker build . \
 		-t "quay.io/iver-wharf/wharf-provider-gitlab:latest" \
 		-t "quay.io/iver-wharf/wharf-provider-gitlab:$(version)" \
 		--build-arg BUILD_VERSION="$(version)" \
