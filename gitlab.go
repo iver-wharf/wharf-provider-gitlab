@@ -50,23 +50,13 @@ func (client *gitLabClient) listProjects(page int) ([]*gitlab.Project, gitLabPag
 }
 
 func (client *gitLabClient) getProject(groupName string, projectName string) (*gitlab.Project, error) {
-	projects, _, err := client.listProjectsFromGroup(fmt.Sprintf("%v/%v", groupName, projectName), 0)
+	project, _, err := client.Projects.GetProject(fmt.Sprintf("%v/%v", groupName, projectName), nil)
 	if err != nil {
-		log.WithError(err).Errorln("failed to list projects")
-		return nil, err
+		log.WithError(err).Errorln("failed to get project")
+		return nil, fmt.Errorf("unable to get project %s/%s: %w", groupName, projectName, err)
 	}
 
-	if len(projects) == 1 {
-		return projects[0], nil
-	}
-
-	log.WithFields(log.Fields{
-		"projects":     projects,
-		"group name":   groupName,
-		"project name": projectName}).
-		Infoln("Invalid projects count")
-
-	return nil, fmt.Errorf("unable to get project %v/%v", groupName, projectName)
+	return project, nil
 }
 
 func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([]*gitlab.Project, gitLabPaging, error) {
