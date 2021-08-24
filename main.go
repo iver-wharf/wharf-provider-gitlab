@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/iver-wharf/wharf-core/pkg/ginutil"
 	"github.com/iver-wharf/wharf-core/pkg/logger"
+	"github.com/iver-wharf/wharf-core/pkg/logger/consolepretty"
 	"github.com/iver-wharf/wharf-provider-gitlab/docs"
 	"github.com/iver-wharf/wharf-provider-gitlab/internal/httputils"
 	swaggerFiles "github.com/swaggo/files"
@@ -33,6 +34,8 @@ var log = logger.NewScoped("WHARF-PROVIDER-GITLAB")
 // @contact.email wharf@iver.se
 // @basePath /import
 func main() {
+	logger.AddOutput(logger.LevelDebug, consolepretty.Default)
+
 	var (
 		config Config
 		err    error
