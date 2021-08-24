@@ -6,7 +6,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/iver-wharf/wharf-core/pkg/ginutil"
-	log "github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -25,7 +24,7 @@ func getGitLabClientWritesProblem(c *gin.Context, token string, url string) (*gi
 	if err != nil {
 		ginutil.WriteInvalidBindError(c, err,
 			"Creating the GitLab client failed because of an invalid URL. Please double check the Upload URL.")
-		log.WithError(err).Fatalf("Failed to create client.")
+		log.Panic().WithError(err).Message("Failed to create client.")
 		return nil, false
 	}
 
@@ -40,9 +39,10 @@ func (client *gitLabClient) listProjects(page int) ([]*gitlab.Project, gitLabPag
 
 	projects, resp, err := client.Projects.ListProjects(&opt)
 	if err != nil {
-		log.WithError(err).
-			WithField("page", page).
-			Errorln("failed to list projects")
+		log.Error().
+			WithError(err).
+			WithInt("page", page).
+			Message("Failed to list projects.")
 		return nil, mapToPaging(resp), err
 	}
 
@@ -52,7 +52,10 @@ func (client *gitLabClient) listProjects(page int) ([]*gitlab.Project, gitLabPag
 func (client *gitLabClient) getProject(groupName string, projectName string) (*gitlab.Project, error) {
 	projects, _, err := client.listProjectsFromGroup(fmt.Sprintf("%v/%v", groupName, projectName), 0)
 	if err != nil {
-		log.WithError(err).Errorln("failed to list projects")
+		log.Error().
+			WithError(err).
+			WithStringf("project", "%s/%s", groupName, projectName).
+			Message("Failed to list projects for project name and group.")
 		return nil, err
 	}
 
@@ -60,11 +63,9 @@ func (client *gitLabClient) getProject(groupName string, projectName string) (*g
 		return projects[0], nil
 	}
 
-	log.WithFields(log.Fields{
-		"projects":     projects,
-		"group name":   groupName,
-		"project name": projectName}).
-		Infoln("Invalid projects count")
+	log.Info().WithInt("projectCount", len(projects)).
+		WithStringf("project", "%s/%s", groupName, projectName).
+		Message("Invalid projects count.")
 
 	return nil, fmt.Errorf("unable to get project %v/%v", groupName, projectName)
 }
@@ -81,9 +82,11 @@ func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([
 
 	projects, resp, err := client.Projects.ListProjects(&opt)
 	if err != nil {
-		log.WithError(err).
-			WithFields(log.Fields{"group name": groupName, "page": page}).
-			Errorln("failed to list projects")
+		log.Error().
+			WithError(err).
+			WithString("group", groupName).
+			WithInt("page", page).
+			Message("Failed to list projects for group.")
 		return nil, mapToPaging(resp), err
 	}
 
@@ -92,7 +95,7 @@ func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([
 
 func (client *gitLabClient) getBuildDefinitionIfExists(projectID int, defaultBranch string) (string, error) {
 	if defaultBranch == "" {
-		log.Debugln("default branch name cannot be empty")
+		log.Debug().Message("Default branch name cannot be empty.")
 		defaultBranch = REF
 	}
 
@@ -108,13 +111,12 @@ func (client *gitLabClient) getBuildDefinitionIfExists(projectID int, defaultBra
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.WithError(err).
-			WithFields(log.Fields{
-				"project ID":          projectID,
-				"default branch name": defaultBranch,
-				"file name":           BuildDefinitionFileName,
-				"status code":         resp.StatusCode}).
-			Errorln("unable to get build definition")
+		log.Error().
+			WithError(err).
+			WithInt("projectId", projectID).
+			WithString("branch", defaultBranch).
+			WithString("status", resp.Status).
+			Message("Unable to get .wharf-ci.yml file.")
 		return "", err
 	}
 
@@ -129,9 +131,11 @@ func (client *gitLabClient) getBranches(gitLabProjectID int, page int) ([]*gitla
 
 	branches, resp, err := client.branches.ListBranches(gitLabProjectID, &opt)
 	if err != nil {
-		log.WithError(err).
-			WithFields(log.Fields{"project id": gitLabProjectID, "page": page}).
-			Errorln("unable to list branches")
+		log.Error().
+			WithError(err).
+			WithInt("gitLabProjectId", gitLabProjectID).
+			WithInt("page", page).
+			Message("Failed to list branches.")
 		return nil, mapToPaging(resp), err
 	}
 

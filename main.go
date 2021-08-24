@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
+	"github.com/iver-wharf/wharf-core/pkg/ginutil"
+	"github.com/iver-wharf/wharf-core/pkg/logger"
 	"github.com/iver-wharf/wharf-provider-gitlab/docs"
-	log "github.com/sirupsen/logrus"
+	"github.com/iver-wharf/wharf-provider-gitlab/internal/httputils"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
@@ -20,6 +23,8 @@ const BuildDefinitionFileName = ".wharf-ci.yml"
 // ProviderName is a provider name that is used in whole wharf system for GitLab.
 const ProviderName = "gitlab"
 
+var log = logger.NewScoped("WHARF-PROVIDER-GITLAB")
+
 // @title Wharf provider API for GitLab
 // @description Wharf backend API for integrating GitLab repositories with
 // @description the Wharf main API.
@@ -30,20 +35,42 @@ const ProviderName = "gitlab"
 // @contact.email wharf@iver.se
 // @basePath /import
 func main() {
-	if err := loadEmbeddedVersionFile(); err != nil {
-		fmt.Println("Failed to read embedded version.yaml file:", err)
+	var (
+		config Config
+		err    error
+	)
+	if err = loadEmbeddedVersionFile(); err != nil {
+		log.Error().WithError(err).Message("Failed to read embedded version.yaml.")
+		os.Exit(1)
+	}
+	if config, err = loadConfig(); err != nil {
+		fmt.Println("Failed to read config:", err)
 		os.Exit(1)
 	}
 
 	docs.SwaggerInfo.Version = AppVersion.Version
 
-	initLogger(log.TraceLevel)
+	if config.CA.CertsFile != "" {
+		client, err := httputils.NewClientWithCerts(config.CA.CertsFile)
+		if err != nil {
+			log.Error().WithError(err).Message("Failed to get net/http.Client with certs.")
+			os.Exit(1)
+		}
+		http.DefaultClient = client
+	}
 
-	r := gin.Default()
+	gin.DefaultWriter = ginutil.DefaultLoggerWriter
+	gin.DefaultErrorWriter = ginutil.DefaultLoggerWriter
+
+	r := gin.New()
+	r.Use(
+		ginutil.DefaultLoggerHandler,
+		ginutil.RecoverProblem,
+	)
 
 	allowCors, ok := os.LookupEnv("ALLOW_CORS")
 	if ok && allowCors == "YES" {
-		log.Infof("Allowing CORS\n")
+		log.Info().Message("Allowing all origins in CORS.")
 		r.Use(cors.Default())
 	}
 
@@ -53,36 +80,13 @@ func main() {
 	r.GET("/import/gitlab/version", getVersionHandler)
 	r.GET("/import/gitlab/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	err := r.Run(getBindAddress())
-	if err != nil {
-		log.Infof("unable to run gin, error: %+v\n", err)
+	if err := r.Run(config.HTTP.BindAddress); err != nil {
+		log.Error().
+			WithError(err).
+			WithString("address", config.HTTP.BindAddress).
+			Message("Failed to start web server.")
+		os.Exit(2)
 	}
-}
-
-func getBindAddress() string {
-	bindAddress, isBindAddressDefined := os.LookupEnv("BIND_ADDRESS")
-	if !isBindAddressDefined || bindAddress == "" {
-		return "0.0.0.0:8080"
-	}
-	return bindAddress
-}
-
-func initLogger(level log.Level) {
-	log.SetFormatter(&log.TextFormatter{
-		ForceColors:               true,
-		DisableColors:             false,
-		EnvironmentOverrideColors: false,
-		DisableTimestamp:          false,
-		FullTimestamp:             true,
-		TimestampFormat:           "",
-		DisableSorting:            false,
-		SortingFunc:               nil,
-		DisableLevelTruncation:    false,
-		QuoteEmptyFields:          false,
-		FieldMap:                  nil,
-		CallerPrettyfier:          nil,
-	})
-	log.SetLevel(level)
 }
 
 func newWharfClient(authHeader string) wharfapi.Client {
