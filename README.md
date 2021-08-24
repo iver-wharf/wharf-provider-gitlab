@@ -17,6 +17,12 @@ gitlab.com is not well tested.
 
 - GitLab API access using [xanzy/go-gitlab](https://github.com/xanzy/go-gitlab)
 
+## Configuring
+
+The wharf-provider-gitlab program can be configured via environment variables
+and through optional config files. See the docs on the `Config` type over at:
+<https://pkg.go.dev/github.com/iver-wharf/wharf-provider-gitlab#Config>
+
 ## Development
 
 1. Install Go 1.16 or later: <https://golang.org/>

@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
 	"github.com/iver-wharf/wharf-core/pkg/ginutil"
 	"github.com/iver-wharf/wharf-core/pkg/logger"
 	"github.com/iver-wharf/wharf-provider-gitlab/docs"
@@ -68,17 +67,17 @@ func main() {
 		ginutil.RecoverProblem,
 	)
 
-	allowCors, ok := os.LookupEnv("ALLOW_CORS")
-	if ok && allowCors == "YES" {
+	if config.HTTP.CORS.AllowAllOrigins {
 		log.Info().Message("Allowing all origins in CORS.")
 		r.Use(cors.Default())
 	}
 
 	r.GET("/", func(c *gin.Context) { c.JSON(200, gin.H{"message": "pong"}) })
-	r.POST("/import/gitlab", runGitLabHandler)
 	r.POST("/import/gitlab/trigger", runGitLabTriggerHandler)
 	r.GET("/import/gitlab/version", getVersionHandler)
 	r.GET("/import/gitlab/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
+	importModule{}.register(r)
 
 	if err := r.Run(config.HTTP.BindAddress); err != nil {
 		log.Error().
@@ -86,12 +85,5 @@ func main() {
 			WithString("address", config.HTTP.BindAddress).
 			Message("Failed to start web server.")
 		os.Exit(2)
-	}
-}
-
-func newWharfClient(authHeader string) wharfapi.Client {
-	return wharfapi.Client{
-		ApiUrl:     os.Getenv("WHARF_API_URL"),
-		AuthHeader: authHeader,
 	}
 }

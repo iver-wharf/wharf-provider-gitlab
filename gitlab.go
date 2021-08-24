@@ -116,7 +116,7 @@ func (client *gitLabClient) getBuildDefinitionIfExists(projectID int, defaultBra
 			WithInt("projectId", projectID).
 			WithString("branch", defaultBranch).
 			WithString("status", resp.Status).
-			Message("Unable to get .wharf-ci.yml file.")
+			Messagef("Unable to get %s file.", BuildDefinitionFileName)
 		return "", err
 	}
 

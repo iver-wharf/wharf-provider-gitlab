@@ -11,6 +11,14 @@ import (
 	"github.com/xanzy/go-gitlab"
 )
 
+type importModule struct {
+	config *Config
+}
+
+func (m importModule) register(r gin.IRouter) {
+	r.POST("/import/gitlab", m.runGitLabHandler)
+}
+
 // runGitLabHandler godoc
 // @Summary Import projects from gitlab or refresh existing one
 // @Accept  json
@@ -21,7 +29,7 @@ import (
 // @Failure 401 {object} problem.Response "Unauthorized or missing jwt token"
 // @Failure 502 {object} problem.Response "Bad gateway"
 // @Router /gitlab [post]
-func runGitLabHandler(c *gin.Context) {
+func (m importModule) runGitLabHandler(c *gin.Context) {
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 	i := Import{}
@@ -32,7 +40,12 @@ func runGitLabHandler(c *gin.Context) {
 		return
 	}
 
-	importer, ok := newGitLabImporterWritesProblem(c, &i)
+	wharfClient := wharfapi.Client{
+		AuthHeader: c.GetHeader("Authorization"),
+		ApiUrl:     m.config.API.URL,
+	}
+
+	importer, ok := newGitLabImporterWritesProblem(c, wharfClient, &i)
 	if !ok {
 		return
 	}
@@ -71,15 +84,13 @@ type gitLabImporter struct {
 	mapper       mapper
 }
 
-func newGitLabImporterWritesProblem(c *gin.Context, importData *Import) (*gitLabImporter, bool) {
-	wharfClient := newWharfClient(c.GetHeader("Authorization"))
-
-	token, ok := obtainTokenWritesProblem(c, &wharfClient, importData)
+func newGitLabImporterWritesProblem(c *gin.Context, wharfClient wharfapi.Client, importData *Import) (*gitLabImporter, bool) {
+	token, ok := obtainTokenWritesProblem(c, wharfClient, importData)
 	if !ok {
 		return nil, false
 	}
 
-	provider, ok := obtainProviderWritesProblem(c, &wharfClient, token.TokenID, importData)
+	provider, ok := obtainProviderWritesProblem(c, wharfClient, token.TokenID, importData)
 	if !ok {
 		return nil, false
 	}
@@ -96,7 +107,7 @@ func newGitLabImporterWritesProblem(c *gin.Context, importData *Import) (*gitLab
 	}, true
 }
 
-func obtainTokenWritesProblem(c *gin.Context, wharfClient *wharfapi.Client, importData *Import) (wharfapi.Token, bool) {
+func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfapi.Client, importData *Import) (wharfapi.Token, bool) {
 	if importData.TokenID != 0 {
 		token, err := wharfClient.GetTokenById(importData.TokenID)
 		if err != nil {
@@ -137,7 +148,7 @@ func obtainTokenWritesProblem(c *gin.Context, wharfClient *wharfapi.Client, impo
 	return token, true
 }
 
-func obtainProviderWritesProblem(c *gin.Context, wharfClient *wharfapi.Client, tokenID uint, importData *Import) (wharfapi.Provider, bool) {
+func obtainProviderWritesProblem(c *gin.Context, wharfClient wharfapi.Client, tokenID uint, importData *Import) (wharfapi.Provider, bool) {
 	if importData.ProviderID != 0 {
 		provider, err := wharfClient.GetProviderById(importData.ProviderID)
 		if err != nil || provider.ProviderID == 0 {
