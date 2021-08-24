@@ -1,5 +1,6 @@
 package main
 
+// Import is the data that is required by the import endpoint.
 type Import struct {
 	// used in refresh only
 	TokenID   uint   `json:"tokenId" example:"0"`
