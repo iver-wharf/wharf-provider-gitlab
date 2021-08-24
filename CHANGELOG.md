@@ -23,6 +23,8 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 - Added Makefile to simplify building and developing the project locally.
   (#21, #22)
 
+- Added documentation to the remaining exported types. (#24)
+
 ## v1.2.0 (2021-07-12)
 
 - Added environment var for setting bind address and port. (#11)
