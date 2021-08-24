@@ -77,7 +77,7 @@ func main() {
 	r.GET("/import/gitlab/version", getVersionHandler)
 	r.GET("/import/gitlab/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
-	importModule{}.register(r)
+	importModule{&config}.register(r)
 
 	if err := r.Run(config.HTTP.BindAddress); err != nil {
 		log.Error().
