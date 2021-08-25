@@ -58,7 +58,7 @@ func (m *WharfClientAPIFetcherMock) PutProject(project wharfapi.Project) (wharfa
 	return args.Get(0).(wharfapi.Project), args.Error(1)
 }
 
-// PutBranches resets the list of branches for a project.
+// PutBranches replaces the list of branches for a project.
 func (m *WharfClientAPIFetcherMock) PutBranches(branches []wharfapi.Branch) ([]wharfapi.Branch, error) {
 	args := m.Called(branches)
 	return args.Get(0).([]wharfapi.Branch), args.Error(1)
