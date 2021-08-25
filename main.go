@@ -22,6 +22,13 @@ const BuildDefinitionFileName = ".wharf-ci.yml"
 // ProviderName is a provider name that is used in whole wharf system for GitLab.
 const ProviderName = "gitlab"
 
+const (
+	exitCodeFailLoadVersionFile = 1
+	exitCodeFailLoadConfigFile  = 1
+	exitCodeFailLoadCerts       = 1
+	exitCodeFailBindAddress     = 2
+)
+
 var log = logger.NewScoped("WHARF-PROVIDER-GITLAB")
 
 // @title Wharf provider API for GitLab
@@ -42,11 +49,11 @@ func main() {
 	)
 	if err = loadEmbeddedVersionFile(); err != nil {
 		log.Error().WithError(err).Message("Failed to read embedded version.yaml.")
-		os.Exit(1)
+		os.Exit(exitCodeFailLoadVersionFile)
 	}
 	if config, err = loadConfig(); err != nil {
 		log.Error().WithError(err).Message("Failed to read config.")
-		os.Exit(1)
+		os.Exit(exitCodeFailLoadConfigFile)
 	}
 
 	docs.SwaggerInfo.Version = AppVersion.Version
@@ -55,7 +62,7 @@ func main() {
 		client, err := httputils.NewClientWithCerts(config.CA.CertsFile)
 		if err != nil {
 			log.Error().WithError(err).Message("Failed to get net/http.Client with certs.")
-			os.Exit(1)
+			os.Exit(exitCodeFailLoadCerts)
 		}
 		http.DefaultClient = client
 	}
@@ -86,6 +93,6 @@ func main() {
 			WithError(err).
 			WithString("address", config.HTTP.BindAddress).
 			Message("Failed to start web server.")
-		os.Exit(2)
+		os.Exit(exitCodeFailBindAddress)
 	}
 }
