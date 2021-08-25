@@ -6,7 +6,7 @@ import (
 )
 
 // WharfClientAPIFetcherMock is a mock variant of the wharfapi.Client with the
-// helps of github.com/stretchr/testify/mock.
+// help of github.com/stretchr/testify/mock.
 type WharfClientAPIFetcherMock struct {
 	mock.Mock
 }
