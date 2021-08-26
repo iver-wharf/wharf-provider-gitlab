@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/xanzy/go-gitlab"
 )
 
@@ -29,15 +28,15 @@ func mapToPaging(resp *gitlab.Response) gitLabPaging {
 
 func (p gitLabPaging) next() int {
 	if p.currentPage >= p.totalPages {
-		log.WithField("page", p.totalPages).Debugln("found end of collection")
+		log.Debug().WithInt("page", p.totalPages).Message("Found end of collection.")
 		return -1
 	}
 
-	log.WithFields(log.Fields{
-		"current page": p.currentPage,
-		"next page":    p.nextPage,
-		"total pages":  p.totalPages}).
-		Debugln("fetching next page")
+	log.Debug().
+		WithInt("currentPage", p.currentPage).
+		WithInt("nextPage", p.nextPage).
+		WithInt("totalPages", p.totalPages).
+		Message("Fetching next page.")
 	return p.nextPage
 }
 
@@ -50,7 +49,7 @@ func importPaginatedProjects(get getProjects, put putProjects) error {
 	for page >= 0 {
 		projects, paging, err := get(page)
 		if err != nil {
-			log.WithError(err).Errorln("failed to get projects")
+			log.Error().WithError(err).Message("Failed to get projects.")
 			return err
 		}
 

@@ -21,7 +21,14 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
   instead of solely JSON-formatted strings. (#15)
 
 - Added Makefile to simplify building and developing the project locally.
-  (#21, #22)
+  (#21, #22, #23)
+
+- Removed logging via `github.com/sirupsen/logrus` and the dependency on the
+  package as well. (#23)
+
+- Added logging via `github.com/iver-wharf/wharf-core/pkg/logger`. (#23)
+
+- Added dependency on `github.com/iver-wharf/wharf-core` v1.1.0. (#23)
 
 - Added documentation to the remaining exported types. (#24)
 

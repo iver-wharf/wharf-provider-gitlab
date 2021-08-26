@@ -8,7 +8,6 @@ import (
 
 	"github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
 	"github.com/iver-wharf/wharf-provider-gitlab/testdoubles"
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -26,9 +25,6 @@ func TestImports(t *testing.T) {
 }
 
 func (suite *importTestSuite) SetupSuite() {
-	logger := log.New()
-	logger.Out = ioutil.Discard
-
 	suite.data = getTestImport()
 
 	allProjects := readProjectsFromFile(suite.T(), "testdata/projects_all.json")

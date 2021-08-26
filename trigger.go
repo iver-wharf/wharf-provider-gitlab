@@ -3,38 +3,20 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
-	log "github.com/sirupsen/logrus"
 )
 
 func runGitLabTriggerHandler(c *gin.Context) {
-	log.Debug("Gitlab triggered")
+	log.Debug().Message("GitLab triggered.")
 
 	var event Event
 	if err := c.ShouldBindBodyWith(&event, binding.JSON); err != nil {
-		log.Fatalf("could not bind event: %v", err)
+		log.Panic().WithError(err).Message("Could not bind event.")
 	}
-	log.Infof("Got event %v", event.Name)
+	log.Info().WithString("event", event.Name).Message("Successfully binded event.")
 
 	if event.Name == RepositoryUpdateEvent {
-		_ = RunRepositoryUpdateTrigger(c)
+		// TODO
 	}
 
-	log.Debug("Gitlab trigger finished")
-}
-
-func RunRepositoryUpdateTrigger(c *gin.Context) error {
-
-	var repo RepositoryUpdate
-	if err := c.ShouldBindBodyWith(&repo, binding.JSON); err != nil {
-		log.Errorf("Error binding RepositoryUpdate: %v", err)
-		return err
-	}
-
-	log.Infof("Repo %v updated", repo.Project.Name)
-
-	client := newWharfClient(c.GetHeader("Authorization"))
-
-	log.Infof("Got client %v", client)
-
-	return nil
+	log.Debug().Message("GitLab trigger finished.")
 }

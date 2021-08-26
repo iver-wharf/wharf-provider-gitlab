@@ -32,5 +32,5 @@ swag:
 	swag init --parseDependency --parseDepth 2
 
 deps:
-	cd .. && go get -u github.com/swaggo/swag
+	cd .. && go get -u github.com/swaggo/swag/cmd/swag@v1.7.1
 	go mod download
