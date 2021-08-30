@@ -7,7 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-openapi/spec v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.6 // indirect
-	github.com/iver-wharf/wharf-api-client-go v1.2.0
+	github.com/iver-wharf/wharf-api-client-go v1.3.1
 	github.com/iver-wharf/wharf-core v1.1.0
 	github.com/mailru/easyjson v0.7.0 // indirect
 	github.com/stretchr/testify v1.7.0
