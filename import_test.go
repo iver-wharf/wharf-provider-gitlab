@@ -72,7 +72,7 @@ func (suite *importTestSuite) SetupSuite() {
 				proj.GroupName == wProj.GroupName &&
 				proj.Name == wProj.Name &&
 				proj.GitURL == wProj.GitURL &&
-				proj.AvatarUrl == wProj.AvatarUrl &&
+				proj.AvatarURL == wProj.AvatarURL &&
 				proj.Description == wProj.Description &&
 				proj.BuildDefinition == wProj.BuildDefinition
 		})).Return(wProj, nil)
@@ -166,7 +166,7 @@ func mapToWharfProj(proj *gitlab.Project, tokenID uint, providerID uint) wharfap
 		TokenID:         tokenID,
 		Description:     proj.Description,
 		BuildDefinition: "",
-		AvatarUrl:       proj.AvatarURL,
+		AvatarURL:       proj.AvatarURL,
 		GitURL:          proj.SSHURLToRepo,
 	}
 }

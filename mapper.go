@@ -21,7 +21,7 @@ func (m *mapper) mapProjectToWharfEntity(proj gitlab.Project, buildDef string) w
 		Name:            proj.Name,
 		BuildDefinition: buildDef,
 		Description:     proj.Description,
-		AvatarUrl:       proj.AvatarURL,
+		AvatarURL:       proj.AvatarURL,
 		GitURL:          proj.SSHURLToRepo,
 		TokenID:         m.tokenID,
 		ProviderID:      m.providerID,

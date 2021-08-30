@@ -11,8 +11,8 @@ type WharfClientAPIFetcherMock struct {
 	mock.Mock
 }
 
-// GetTokenById returns a token as identified by its ID.
-func (m *WharfClientAPIFetcherMock) GetTokenById(tokenID uint) (wharfapi.Token, error) {
+// GetTokenByID returns a token as identified by its ID.
+func (m *WharfClientAPIFetcherMock) GetTokenByID(tokenID uint) (wharfapi.Token, error) {
 	args := m.Called(tokenID)
 	return args.Get(0).(wharfapi.Token), args.Error(1)
 }
@@ -30,8 +30,8 @@ func (m *WharfClientAPIFetcherMock) PostToken(token wharfapi.Token) (wharfapi.To
 	return args.Get(0).(wharfapi.Token), args.Error(1)
 }
 
-// GetProviderById returns a provider as identified by its ID.
-func (m *WharfClientAPIFetcherMock) GetProviderById(providerID uint) (wharfapi.Provider, error) {
+// GetProviderByID returns a provider as identified by its ID.
+func (m *WharfClientAPIFetcherMock) GetProviderByID(providerID uint) (wharfapi.Provider, error) {
 	args := m.Called(providerID)
 	return args.Get(0).(wharfapi.Provider), args.Error(1)
 }

@@ -3,10 +3,10 @@ package main
 import "github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
 
 type wharfClientAPIFetcher interface {
-	GetTokenById(tokenID uint) (wharfapi.Token, error)
+	GetTokenByID(tokenID uint) (wharfapi.Token, error)
 	GetToken(token string, userName string) (wharfapi.Token, error)
 	PostToken(token wharfapi.Token) (wharfapi.Token, error)
-	GetProviderById(providerID uint) (wharfapi.Provider, error)
+	GetProviderByID(providerID uint) (wharfapi.Provider, error)
 	GetProvider(providerName string, urlStr string, uploadURLStr string, tokenID uint) (wharfapi.Provider, error)
 	PostProvider(provider wharfapi.Provider) (wharfapi.Provider, error)
 	PutProject(project wharfapi.Project) (wharfapi.Project, error)
