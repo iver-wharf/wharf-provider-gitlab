@@ -32,6 +32,11 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 
 - Added documentation to the remaining exported types. (#24)
 
+- Removed `internal/httputils`, which was moved to `wharf-core/pkg/cacertutil`.
+  (#25)
+
+- Added dependency on `wharf-core/pkg/cacertutil`. (#25)
+
 ## v1.2.0 (2021-07-12)
 
 - Added environment var for setting bind address and port. (#11)
