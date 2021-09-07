@@ -42,7 +42,7 @@ func (m importModule) runGitLabHandler(c *gin.Context) {
 
 	wharfClient := wharfapi.Client{
 		AuthHeader: c.GetHeader("Authorization"),
-		ApiUrl:     m.config.API.URL,
+		APIURL:     m.config.API.URL,
 	}
 
 	importer, ok := newGitLabImporterWritesProblem(c, wharfClient, &i)
@@ -109,7 +109,7 @@ func newGitLabImporterWritesProblem(c *gin.Context, wharfClient wharfapi.Client,
 
 func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfapi.Client, importData *Import) (wharfapi.Token, bool) {
 	if importData.TokenID != 0 {
-		token, err := wharfClient.GetTokenById(importData.TokenID)
+		token, err := wharfClient.GetTokenByID(importData.TokenID)
 		if err != nil {
 			ginutil.WriteAPIClientReadError(c, err,
 				fmt.Sprintf(
@@ -150,7 +150,7 @@ func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfapi.Client, impor
 
 func obtainProviderWritesProblem(c *gin.Context, wharfClient wharfapi.Client, tokenID uint, importData *Import) (wharfapi.Provider, bool) {
 	if importData.ProviderID != 0 {
-		provider, err := wharfClient.GetProviderById(importData.ProviderID)
+		provider, err := wharfClient.GetProviderByID(importData.ProviderID)
 		if err != nil || provider.ProviderID == 0 {
 			ginutil.WriteAPIClientReadError(c, err,
 				fmt.Sprintf("Unable to get provider by ID %d.", importData.ProjectID))

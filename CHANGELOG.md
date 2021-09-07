@@ -32,6 +32,9 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 
 - Added documentation to the remaining exported types. (#24)
 
+- Changed version of `github.com/iver-wharf/wharf-api-client-go`
+  from v1.2.0 -> v1.3.1. (#26)
+
 - Changed version of `github.com/iver-wharf/wharf-core`
   from v1.1.0 -> v1.2.0. (#25)
 

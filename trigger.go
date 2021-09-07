@@ -14,9 +14,5 @@ func runGitLabTriggerHandler(c *gin.Context) {
 	}
 	log.Info().WithString("event", event.Name).Message("Successfully binded event.")
 
-	if event.Name == RepositoryUpdateEvent {
-		// TODO
-	}
-
 	log.Debug().Message("GitLab trigger finished.")
 }
