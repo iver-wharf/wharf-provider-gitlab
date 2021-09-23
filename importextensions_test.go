@@ -86,7 +86,6 @@ func getTestImport() Import {
 		Token:      "sample token",
 		User:       "sample user name",
 		URL:        "https://sth.com",
-		UploadURL:  "",
 		ProviderID: 1,
 		ProjectID:  88,
 		Project:    "sample project name",

@@ -38,8 +38,8 @@ func (m *WharfClientAPIFetcherMock) GetProviderByID(providerID uint) (wharfapi.P
 
 // GetProvider returns a provider as identified by its name, URL, and upload
 // URL strings, as well as its token ID reference.
-func (m *WharfClientAPIFetcherMock) GetProvider(providerName, urlStr, uploadURLStr string, tokenID uint) (wharfapi.Provider, error) {
-	args := m.Called(providerName, urlStr, uploadURLStr, tokenID)
+func (m *WharfClientAPIFetcherMock) GetProvider(providerName, urlStr string, tokenID uint) (wharfapi.Provider, error) {
+	args := m.Called(providerName, urlStr, tokenID)
 	return args.Get(0).(wharfapi.Provider), args.Error(1)
 }
 
