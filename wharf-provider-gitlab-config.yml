@@ -4,6 +4,6 @@ api:
   url: http://localhost:5001
 
 http:
-  bindAddress: :5004
+  bindAddress: :5002
   cors:
     allowAllOrigins: true
