@@ -36,7 +36,7 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
   from v1.2.0 -> v1.3.1. (#26)
 
 - Changed version of `github.com/iver-wharf/wharf-core`
-  from v1.1.0 -> v1.2.0. (#25)
+  from v1.1.0 -> v1.3.0. (#25, #38)
 
 - Removed `internal/httputils`, which was moved to
   `github.com/iver-wharf/wharf-core/pkg/cacertutil`. (#25)
