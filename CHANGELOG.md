@@ -46,6 +46,8 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
   - Alpine: 3.14.0 -> 3.14 (#28)
   - Golang: 1.16.5 -> 1.16 (#28)
 
+- Changed Dockerfile for easier windows building. (#39)
+
 ## v1.2.0 (2021-07-12)
 
 - Added environment var for setting bind address and port. (#11)
