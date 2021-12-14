@@ -74,7 +74,7 @@ func (client *gitLabClient) getProject(groupName string, projectName string) (*g
 		WithStringf("project", "%s/%s", groupName, projectName).
 		Message("Invalid projects count.")
 
-	return nil, fmt.Errorf("project search %v/%v matched multiple projects", groupName, projectName)
+	return nil, fmt.Errorf("project search %v/%v did not match 1 project, but %d", groupName, projectName, len(filteredProjects))
 }
 
 func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([]*gitlab.Project, gitLabPaging, error) {
