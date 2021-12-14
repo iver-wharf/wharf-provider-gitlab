@@ -59,15 +59,22 @@ func (client *gitLabClient) getProject(groupName string, projectName string) (*g
 		return nil, err
 	}
 
-	if len(projects) == 1 {
-		return projects[0], nil
+	var filteredProjects []*gitlab.Project
+	for _, p := range projects {
+		if p.Name == projectName || p.Path == projectName {
+			filteredProjects = append(filteredProjects, p)
+		}
 	}
 
-	log.Info().WithInt("projectCount", len(projects)).
+	if len(filteredProjects) == 1 {
+		return filteredProjects[0], nil
+	}
+
+	log.Info().WithInt("projectCount", len(filteredProjects)).
 		WithStringf("project", "%s/%s", groupName, projectName).
 		Message("Invalid projects count.")
 
-	return nil, fmt.Errorf("unable to get project %v/%v", groupName, projectName)
+	return nil, fmt.Errorf("project search %v/%v matched multiple projects", groupName, projectName)
 }
 
 func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([]*gitlab.Project, gitLabPaging, error) {
