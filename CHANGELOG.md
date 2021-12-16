@@ -48,6 +48,9 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 
 - Changed Dockerfile for easier windows building. (#39)
 
+- Fixed projects failing to import when a different GitLab repository began
+  with the same name (#3), eg. `myGroup/myRepo` and `myGroup/myRepo2`. (#40)
+
 ## v1.2.0 (2021-07-12)
 
 - Added environment var for setting bind address and port. (#11)
