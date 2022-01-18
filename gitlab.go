@@ -87,15 +87,27 @@ func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([
 		opt.Page = page
 	}
 
+	log.Debug().
+		WithString("groupName", groupName).
+		WithInt("page", page).
+		Message("Listing projects for group")
+
 	projects, resp, err := client.Projects.ListProjects(&opt)
 	if err != nil {
 		log.Error().
 			WithError(err).
+			WithString("URL", resp.Request.URL.String()).
+			WithString("status", resp.Status).
 			WithString("group", groupName).
 			WithInt("page", page).
 			Message("Failed to list projects for group.")
 		return nil, mapToPaging(resp), err
 	}
+
+	log.Debug().
+		WithString("groupName", groupName).
+		WithInt("page", page).
+		Message("Successfully listed projects for group")
 
 	return projects, mapToPaging(resp), nil
 }
