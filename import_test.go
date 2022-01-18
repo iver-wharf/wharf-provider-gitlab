@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
+	"github.com/iver-wharf/wharf-api-client-go/v2/pkg/wharfapi"
 	"github.com/iver-wharf/wharf-provider-gitlab/testdoubles"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

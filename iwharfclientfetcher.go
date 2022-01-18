@@ -1,6 +1,6 @@
 package main
 
-import "github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
+import "github.com/iver-wharf/wharf-api-client-go/v2/pkg/wharfapi"
 
 type wharfClientAPIFetcher interface {
 	GetTokenByID(tokenID uint) (wharfapi.Token, error)

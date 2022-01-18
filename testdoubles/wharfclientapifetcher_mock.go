@@ -1,7 +1,7 @@
 package testdoubles
 
 import (
-	"github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
+	"github.com/iver-wharf/wharf-api-client-go/v2/pkg/wharfapi"
 	"github.com/stretchr/testify/mock"
 )
 

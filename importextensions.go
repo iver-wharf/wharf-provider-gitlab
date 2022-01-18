@@ -55,10 +55,6 @@ func (i Import) getOperationType(entity entity) operationType {
 	return invalidOperation
 }
 
-func (i Import) tokenOperation() operationType {
-	return i.getOperationType(tokenEntity)
-}
-
 func (i Import) whatToImport() importType {
 	if i.Project != "" && i.Group != "" {
 		return importProject
