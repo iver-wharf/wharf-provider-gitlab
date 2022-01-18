@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strconv"
+
 	"github.com/iver-wharf/wharf-api/v5/pkg/model/request"
 	"github.com/xanzy/go-gitlab"
 )
@@ -26,6 +28,7 @@ func (m *mapper) mapProjectToWharfEntity(proj gitlab.Project, buildDef string) r
 		TokenID:         m.tokenID,
 		ProviderID:      m.providerID,
 		GroupName:       groupName,
+		RemoteProjectID: strconv.Itoa(proj.ID),
 	}
 }
 
