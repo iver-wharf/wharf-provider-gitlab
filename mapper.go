@@ -3,7 +3,7 @@ package main
 import (
 	"strconv"
 
-	"github.com/iver-wharf/wharf-api/v5/pkg/model/request"
+	"github.com/iver-wharf/wharf-api-client-go/v2/pkg/model/request"
 	"github.com/xanzy/go-gitlab"
 )
 
