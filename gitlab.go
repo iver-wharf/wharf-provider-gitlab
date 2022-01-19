@@ -64,10 +64,8 @@ func (client *gitLabClient) getProject(groupName string, projectName string) (*g
 }
 
 func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([]*gitlab.Project, gitLabPaging, error) {
-	opt := gitlab.ListProjectsOptions{
-		OrderBy:          gitlab.String("id"),
-		SearchNamespaces: gitlab.Bool(true),
-		Search:           gitlab.String(groupName),
+	opt := gitlab.ListGroupProjectsOptions{
+		OrderBy: gitlab.String("id"),
 	}
 	if page != 0 {
 		opt.Page = page
@@ -76,9 +74,9 @@ func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([
 	log.Debug().
 		WithString("groupName", groupName).
 		WithInt("page", page).
-		Message("Listing projects for group")
+		Message("Listing projects for group.")
 
-	projects, resp, err := client.Projects.ListProjects(&opt)
+	projects, resp, err := client.Groups.ListGroupProjects(groupName, &opt, nil)
 	if err != nil {
 		log.Error().
 			WithError(err).
@@ -93,7 +91,7 @@ func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([
 	log.Debug().
 		WithString("groupName", groupName).
 		WithInt("page", page).
-		Message("Successfully listed projects for group")
+		Message("Successfully listed projects for group.")
 
 	return projects, mapToPaging(resp), nil
 }
