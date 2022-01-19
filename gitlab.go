@@ -50,31 +50,17 @@ func (client *gitLabClient) listProjects(page int) ([]*gitlab.Project, gitLabPag
 }
 
 func (client *gitLabClient) getProject(groupName string, projectName string) (*gitlab.Project, error) {
-	projects, _, err := client.listProjectsFromGroup(fmt.Sprintf("%v/%v", groupName, projectName), 0)
+	project, _, err := client.Projects.GetProject(fmt.Sprintf("%v/%v", groupName, projectName), nil, nil)
 	if err != nil {
 		log.Error().
 			WithError(err).
-			WithStringf("project", "%s/%s", groupName, projectName).
-			Message("Failed to list projects for project name and group.")
+			WithString("group", groupName).
+			WithString("project", projectName).
+			Message("Failed to get project.")
 		return nil, err
 	}
 
-	var filteredProjects []*gitlab.Project
-	for _, p := range projects {
-		if p.Name == projectName || p.Path == projectName {
-			filteredProjects = append(filteredProjects, p)
-		}
-	}
-
-	if len(filteredProjects) == 1 {
-		return filteredProjects[0], nil
-	}
-
-	log.Info().WithInt("projectCount", len(filteredProjects)).
-		WithStringf("project", "%s/%s", groupName, projectName).
-		Message("Invalid projects count.")
-
-	return nil, fmt.Errorf("project search %v/%v did not match 1 project, but %d", groupName, projectName, len(filteredProjects))
+	return project, nil
 }
 
 func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([]*gitlab.Project, gitLabPaging, error) {
