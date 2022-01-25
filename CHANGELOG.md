@@ -24,6 +24,8 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 
 - Added GitHub's internal project ID when adding project to database. (#43)
 
+## v1.3.0 (2022-01-03)
+
 - Added support for the TZ environment variable (setting timezones ex.
   `"Europe/Stockholm"`) through the tzdata package. (#20)
 
