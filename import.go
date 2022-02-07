@@ -82,7 +82,7 @@ func (m importModule) runGitLabHandler(c *gin.Context) {
 
 type gitLabImporter struct {
 	gitLabClient gitLabFetcher
-	wharfClient  wharfapi.Client
+	wharfClient  wharfClientAPIFetcher
 	mapper       mapper
 }
 
