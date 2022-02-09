@@ -86,7 +86,7 @@ type gitLabImporter struct {
 	mapper       mapper
 }
 
-func newGitLabImporterWritesProblem(c *gin.Context, wharfClient wharfapi.Client, importData *Import) (*gitLabImporter, bool) {
+func newGitLabImporterWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetcher, importData *Import) (*gitLabImporter, bool) {
 	token, ok := obtainTokenWritesProblem(c, wharfClient, importData)
 	if !ok {
 		return nil, false
@@ -109,7 +109,7 @@ func newGitLabImporterWritesProblem(c *gin.Context, wharfClient wharfapi.Client,
 	}, true
 }
 
-func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfapi.Client, importData *Import) (response.Token, bool) {
+func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetcher, importData *Import) (response.Token, bool) {
 	if importData.TokenID != 0 {
 		token, err := wharfClient.GetToken(importData.TokenID)
 		if err != nil {
@@ -168,7 +168,7 @@ func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfapi.Client, impor
 	return token, true
 }
 
-func obtainProviderWritesProblem(c *gin.Context, wharfClient wharfapi.Client, tokenID uint, importData *Import) (response.Provider, bool) {
+func obtainProviderWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetcher, tokenID uint, importData *Import) (response.Provider, bool) {
 	if importData.ProviderID != 0 {
 		provider, err := wharfClient.GetProvider(importData.ProviderID)
 		if err != nil || provider.ProviderID == 0 {
