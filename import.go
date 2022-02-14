@@ -132,8 +132,6 @@ func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetcher,
 	search := wharfapi.TokenSearch{
 		UserName: &importData.User,
 	}
-	var token response.Token
-	var found bool
 	tokens, err := wharfClient.GetTokenList(search)
 	if err != nil {
 		ginutil.WriteAPIClientReadError(c, err,
@@ -141,15 +139,8 @@ func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetcher,
 		log.Error().WithError(err).Message("Unable to get token.")
 		return response.Token{}, false
 	}
-	for _, t := range tokens.List {
-		if t.Token == importData.Token {
-			token = t
-			found = true
-			break
-		}
-	}
-
-	if !found {
+	token, ok := findTokenByTokenString(tokens.List, importData.Token)
+	if !ok {
 		token, err = wharfClient.CreateToken(request.Token{Token: importData.Token, UserName: importData.User})
 		if authErr, ok := err.(*wharfapi.AuthError); ok {
 			c.Header("WWW-Authenticate", authErr.Realm)
@@ -166,6 +157,18 @@ func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetcher,
 	}
 	log.Debug().WithUint("tokenId", token.TokenID).Message("Successfully created token.")
 	return token, true
+}
+
+func findTokenByTokenString(tokens []response.Token, tokenStr string) (response.Token, bool) {
+	token, ok := response.Token{}, false
+	for _, t := range tokens {
+		if t.Token == tokenStr {
+			token = t
+			ok = true
+			break
+		}
+	}
+	return token, ok
 }
 
 func obtainProviderWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetcher, tokenID uint, importData *Import) (response.Provider, bool) {
@@ -201,16 +204,8 @@ func obtainProviderWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetch
 		return response.Provider{}, false
 	}
 
-	var found bool
-	for _, p := range providers.List {
-		if p.TokenID == tokenID {
-			provider = p
-			found = true
-			break
-		}
-	}
-
-	if !found {
+	provider, ok := findProviderByTokenID(providers.List, tokenID)
+	if !ok {
 		provider, err = wharfClient.CreateProvider(request.Provider{
 			Name:    ProviderName,
 			URL:     importData.URL,
@@ -228,6 +223,18 @@ func obtainProviderWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetch
 		WithString("providerUrl", provider.URL).
 		Message("Provider from DB.")
 	return provider, true
+}
+
+func findProviderByTokenID(providers []response.Provider, tokenID uint) (response.Provider, bool) {
+	provider, ok := response.Provider{}, false
+	for _, p := range providers {
+		if p.TokenID == tokenID {
+			provider = p
+			ok = true
+			break
+		}
+	}
+	return provider, ok
 }
 
 func (importer *gitLabImporter) importProject(groupName string, projectName string) error {
