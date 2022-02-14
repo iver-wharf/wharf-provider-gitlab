@@ -80,6 +80,12 @@ func getTestImportWithoutProject() Import {
 	return importData
 }
 
+func getTestImportWithNonExistentProjectID() Import {
+	importData := getTestImport()
+	importData.ProjectID = uint(10000000)
+	return importData
+}
+
 func getTestImport() Import {
 	importSampleData := Import{
 		TokenID:    256,
@@ -88,7 +94,7 @@ func getTestImport() Import {
 		URL:        "https://sth.com",
 		UploadURL:  "",
 		ProviderID: 1,
-		ProjectID:  88,
+		ProjectID:  267,
 		Project:    "sample project name",
 		Group:      "sample group name",
 	}

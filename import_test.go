@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"reflect"
 	"strconv"
@@ -10,6 +11,7 @@ import (
 	"github.com/iver-wharf/wharf-api-client-go/v2/pkg/model/request"
 	"github.com/iver-wharf/wharf-api-client-go/v2/pkg/model/response"
 	"github.com/iver-wharf/wharf-provider-gitlab/testdoubles"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -28,6 +30,7 @@ func TestImports(t *testing.T) {
 
 func (suite *importTestSuite) SetupSuite() {
 	suite.data = getTestImport()
+	nonExistentProjectID := getTestImportWithNonExistentProjectID().ProjectID
 
 	allProjects := readProjectsFromFile(suite.T(), "testdata/projects_all.json")
 	spGroupGitLabProjects := readProjectsFromFile(suite.T(), "testdata/groups/default_9/super-project_84/projects.json")
@@ -79,6 +82,7 @@ func (suite *importTestSuite) SetupSuite() {
 	for _, p := range allProjects {
 		wProj := mapToWharfProj(p, suite.data.TokenID, suite.data.ProviderID)
 		respProj := response.Project{
+			ProjectID:       uint(p.ID),
 			TokenID:         wProj.TokenID,
 			GroupName:       wProj.GroupName,
 			Name:            wProj.Name,
@@ -99,9 +103,25 @@ func (suite *importTestSuite) SetupSuite() {
 				proj.BuildDefinition == wProj.BuildDefinition &&
 				proj.RemoteProjectID == wProj.RemoteProjectID
 		})).Return(respProj, nil)
+		wharfClientMock.On("GetProject", uint(p.ID)).Return(respProj, nil)
+		wharfClientMock.
+			On("UpdateProject", uint(p.ID), anyOfType(request.ProjectUpdate{})).
+			Return(response.Project{}, nil)
+		wharfClientMock.
+			On("UpdateProjectBranchList", uint(p.ID), anyOfType([]request.Branch{})).
+			Return([]response.Branch{}, nil)
 	}
 
-	wharfClientMock.On("CreateProjectBranch", mock.AnythingOfType("uint"), mock.AnythingOfType(reflect.TypeOf(request.Branch{}).Name())).Return(response.Branch{}, nil)
+	wharfClientMock.On("GetProject", nonExistentProjectID).Return(response.Project{}, errors.New("project with matching ID not found"))
+	wharfClientMock.
+		On("UpdateProject", nonExistentProjectID, anyOfType(request.ProjectUpdate{})).
+		Return(request.ProjectUpdate{}, errors.New("unable to update, project with matching ID not found"))
+	wharfClientMock.
+		On("UpdateProjectBranchList", nonExistentProjectID, anyOfType([]request.Branch{})).
+		Return([]response.Branch{}, errors.New("unable to update project branch list, project with matching ID not found"))
+	wharfClientMock.
+		On("CreateProjectBranch", mock.AnythingOfType("uint"), anyOfType(request.Branch{})).
+		Return(response.Branch{}, nil)
 
 	suite.sut = gitLabImporter{
 		gitLabClient: gitLabMock,
@@ -112,6 +132,7 @@ func (suite *importTestSuite) SetupSuite() {
 
 func (suite *importTestSuite) SetupTest() {
 	suite.sut.wharfClient.(*testdoubles.WharfClientAPIFetcherMock).Mock.Calls = suite.sut.wharfClient.(*testdoubles.WharfClientAPIFetcherMock).Mock.Calls[:0]
+	suite.sut.gitLabClient.(*gitLabClientMock).Mock.Calls = suite.sut.gitLabClient.(*gitLabClientMock).Mock.Calls[:0]
 
 	suite.data = getTestImportWithoutProjectID()
 }
@@ -165,6 +186,33 @@ func (suite *importTestSuite) TestImportAll() {
 	apiMock.AssertCalled(suite.T(), "CreateProject", mock.MatchedBy(func(p request.Project) bool { return p.Name == "Boletus" }))
 }
 
+func (suite *importTestSuite) TestRefreshProjectSuccess() {
+	suite.data = getTestImport()
+
+	err := suite.sut.refreshProject(suite.data.TokenID, suite.data.ProviderID, suite.data.ProjectID)
+	require.Nilf(suite.T(), err, "Refresh return error: %v", err)
+
+	apiMock := suite.sut.wharfClient.(*testdoubles.WharfClientAPIFetcherMock)
+	apiMock.AssertNumberOfCalls(suite.T(), "GetProject", 1)
+	apiMock.AssertNumberOfCalls(suite.T(), "UpdateProject", 1)
+	apiMock.AssertNumberOfCalls(suite.T(), "UpdateProjectBranchList", 1)
+
+	gitlabMock := suite.sut.gitLabClient.(*gitLabClientMock)
+	gitlabMock.AssertNumberOfCalls(suite.T(), "getProject", 1)
+	gitlabMock.AssertNumberOfCalls(suite.T(), "getBuildDefinitionIfExists", 1)
+	gitlabMock.AssertNumberOfCalls(suite.T(), "getBranches", 1)
+}
+
+func (suite *importTestSuite) TestRefreshProjectFail() {
+	suite.data = getTestImportWithNonExistentProjectID()
+
+	err := suite.sut.refreshProject(suite.data.TokenID, suite.data.ProviderID, suite.data.ProjectID)
+	require.Errorf(suite.T(), err, "Refresh return error: %v", err)
+
+	apiMock := suite.sut.wharfClient.(*testdoubles.WharfClientAPIFetcherMock)
+	apiMock.AssertNumberOfCalls(suite.T(), "GetProject", 1)
+}
+
 func readProjectsFromFile(t *testing.T, fName string) []*gitlab.Project {
 	content, err := ioutil.ReadFile(fName)
 	if err != nil {
@@ -202,5 +250,82 @@ func getSampleGitLabPaging(count int) gitLabPaging {
 		currentPage:  1,
 		nextPage:     1,
 		previousPage: 1,
+	}
+}
+
+func anyOfType(obj interface{}) mock.AnythingOfTypeArgument {
+	return mock.AnythingOfType(reflect.TypeOf(obj).Name())
+}
+
+func TestFindTokenByTokenString(t *testing.T) {
+	tokens := []response.Token{
+		{Token: "abcdef"},
+		{Token: "ghijkl"},
+	}
+	testCases := []struct {
+		Name      string
+		WantToken response.Token
+		WantBool  bool
+	}{
+		{
+			Name: "Found",
+			WantToken: response.Token{
+				Token: "ghijkl",
+			},
+			WantBool: true,
+		},
+		{
+			Name:      "Not found",
+			WantToken: response.Token{},
+			WantBool:  false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			gotToken, gotBool := findTokenByTokenString(tokens, tc.WantToken.Token)
+			assert.Equal(t, tc.WantToken.Token, gotToken.Token, "got the wrong token")
+			assert.Equal(t, tc.WantBool, gotBool, "got the wrong bool value")
+		})
+	}
+}
+
+func TestFindProviderByTokenID(t *testing.T) {
+	providers := []response.Provider{
+		{
+			ProviderID: 1,
+			TokenID:    1,
+		},
+		{
+			ProviderID: 2,
+			TokenID:    2,
+		},
+	}
+	testCases := []struct {
+		Name         string
+		WantProvider response.Provider
+		WantBool     bool
+	}{
+		{
+			Name: "Found",
+			WantProvider: response.Provider{
+				ProviderID: 2,
+				TokenID:    2,
+			},
+			WantBool: true,
+		},
+		{
+			Name:         "Not found",
+			WantProvider: response.Provider{},
+			WantBool:     false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.Name, func(t *testing.T) {
+			gotProvider, gotBool := findProviderByTokenID(providers, tc.WantProvider.TokenID)
+			assert.Equal(t, tc.WantProvider.ProviderID, gotProvider.ProviderID, "got the wrong token")
+			assert.Equal(t, tc.WantBool, gotBool, "got the wrong bool value")
+		})
 	}
 }
