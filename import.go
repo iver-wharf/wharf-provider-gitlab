@@ -53,23 +53,28 @@ func (m importModule) runGitLabHandler(c *gin.Context) {
 	}
 
 	var detail string
-	switch i.whatToImport() {
-	case importProject:
-		err = importer.importProject(i.Group, i.Project)
-		detail = fmt.Sprintf("Unable to import GitLab project %q", i.Project)
-	case importGroup:
-		err = importer.importGroup(i.Group)
-		detail = fmt.Sprintf("Unable to import GitLab group %q", i.Group)
-	case importAllGroups:
-		err = importer.importAll()
-		detail = "Unable to import GitLab groups"
-	default:
-		err = fmt.Errorf("invalid import data")
-		detail = fmt.Sprintf("You need to specify either group, group and project, or neither. "+
-			"Specifying only project is invalid. "+
-			"Group=%q, Project=%q", i.Group, i.Project)
-		ginutil.WriteInvalidParamError(c, err, "Group or Project", detail)
-		return
+	if i.ProjectID == 0 {
+		switch i.whatToImport() {
+		case importProject:
+			err = importer.importProject(i.Group, i.Project)
+			detail = fmt.Sprintf("Unable to import GitLab project %q", i.Project)
+		case importGroup:
+			err = importer.importGroup(i.Group)
+			detail = fmt.Sprintf("Unable to import GitLab group %q", i.Group)
+		case importAllGroups:
+			err = importer.importAll()
+			detail = "Unable to import GitLab groups"
+		default:
+			err = fmt.Errorf("invalid import data")
+			detail = fmt.Sprintf("You need to specify either group, group and project, or neither. "+
+				"Specifying only project is invalid. "+
+				"Group=%q, Project=%q", i.Group, i.Project)
+			ginutil.WriteInvalidParamError(c, err, "Group or Project", detail)
+			return
+		}
+	} else {
+		err = importer.refreshProject(i.TokenID, i.ProviderID, i.ProjectID)
+		detail = fmt.Sprintf("Unable to refresh GitLab project %q", i.Project)
 	}
 
 	if err != nil {
@@ -300,6 +305,47 @@ func (importer gitLabImporter) importProjects(projects []*gitlab.Project) string
 	return errMessage
 }
 
+func (importer gitLabImporter) refreshProject(tokenID, providerID, projectID uint) error {
+	proj, err := importer.wharfClient.GetProject(projectID)
+	if err != nil {
+		log.Error().
+			WithUint("projectID", projectID).
+			Message("Unable to fetch project from Wharf database.")
+		return err
+	}
+	// TODO: Use remote project ID if available.
+	gitLabProject, err := importer.gitLabClient.getProject(proj.GroupName, proj.Name)
+	if err != nil {
+		log.Error().
+			WithStringf("wharfProject", "%s/%s", proj.GroupName, proj.Name).
+			Message("Unable to get project from GitLab.")
+		return err
+	}
+
+	buildDef, err := importer.gitLabClient.getBuildDefinitionIfExists(gitLabProject.ID, gitLabProject.DefaultBranch)
+	if err != nil {
+		return err
+	}
+	groupName := ""
+	if gitLabProject.Namespace != nil {
+		groupName = gitLabProject.Namespace.FullPath
+	}
+	_, err = importer.wharfClient.UpdateProject(projectID, request.ProjectUpdate{
+		Name:            gitLabProject.Name,
+		BuildDefinition: buildDef,
+		Description:     gitLabProject.Description,
+		AvatarURL:       gitLabProject.AvatarURL,
+		GitURL:          gitLabProject.SSHURLToRepo,
+		TokenID:         tokenID,
+		ProviderID:      providerID,
+		GroupName:       groupName,
+	})
+	if err == nil {
+		importer.refreshBranches(projectID, gitLabProject.ID)
+	}
+	return err
+}
+
 func (importer gitLabImporter) postProject(gitLabProject gitlab.Project) (response.Project, error) {
 	buildDef, err := importer.gitLabClient.getBuildDefinitionIfExists(gitLabProject.ID, gitLabProject.DefaultBranch)
 	if err != nil {
@@ -344,4 +390,25 @@ func (importer gitLabImporter) importBranches(wharfProjectID uint, gitLabProject
 	}
 
 	return nil
+}
+
+func (importer gitLabImporter) refreshBranches(wharfProjectID uint, gitLabProjectID int) error {
+	page := 0
+	var allBranches []request.Branch
+	for page >= 0 {
+		branches, paging, err := importer.gitLabClient.getBranches(gitLabProjectID, page)
+		if err != nil {
+			log.Error().WithError(err).Message("Failed to get branches.")
+			return err
+		}
+
+		for _, branch := range branches {
+			allBranches = append(allBranches, importer.mapper.mapBranchToWharfEntity(*branch))
+		}
+
+		page = paging.next()
+	}
+
+	_, err := importer.wharfClient.UpdateProjectBranchList(wharfProjectID, allBranches)
+	return err
 }
