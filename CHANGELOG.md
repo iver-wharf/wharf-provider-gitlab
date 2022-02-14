@@ -22,7 +22,7 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 - Changed version of `github.com/iver-wharf/wharf-api-client-go`
   from v1.3.1 -> v2.0.0. (#26, #43)
 
-- Added GitHub's internal project ID when adding project to database. (#43)
+- Added GitLab's internal project ID when adding project to database. (#43)
 
 ## v1.3.0 (2022-01-03)
 
