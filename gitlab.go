@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iver-wharf/wharf-core/pkg/ginutil"
@@ -52,11 +53,22 @@ func (client *gitLabClient) listProjects(page int) ([]*gitlab.Project, gitLabPag
 func (client *gitLabClient) getProject(groupName string, projectName string) (*gitlab.Project, error) {
 	project, _, err := client.Projects.GetProject(fmt.Sprintf("%v/%v", groupName, projectName), nil, nil)
 	if err != nil {
-		log.Error().
+		ev := log.Error().
 			WithError(err).
 			WithString("group", groupName).
-			WithString("project", projectName).
-			Message("Failed to get project.")
+			WithString("project", projectName)
+		ev.Message("Failed to get project.")
+		projects, _, err := client.Search.Projects(projectName, &gitlab.SearchOptions{})
+		if err == nil {
+			for _, proj := range projects {
+				if strings.EqualFold(proj.Namespace.FullPath, groupName) ||
+					strings.EqualFold(proj.Namespace.Name, groupName) ||
+					strings.EqualFold(proj.Namespace.Path, groupName) {
+					return proj, nil
+				}
+			}
+		}
+		ev.Message("Failed searching by project name as fallback.")
 		return nil, err
 	}
 
