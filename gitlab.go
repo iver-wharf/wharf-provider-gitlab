@@ -61,9 +61,7 @@ func (client *gitLabClient) getProject(groupName string, projectName string) (*g
 		projects, _, err := client.Search.Projects(projectName, &gitlab.SearchOptions{})
 		if err == nil {
 			for _, proj := range projects {
-				if strings.EqualFold(proj.Namespace.FullPath, groupName) ||
-					strings.EqualFold(proj.Namespace.Name, groupName) ||
-					strings.EqualFold(proj.Namespace.Path, groupName) {
+				if strings.EqualFold(proj.Namespace.FullPath, groupName) {
 					return proj, nil
 				}
 			}
