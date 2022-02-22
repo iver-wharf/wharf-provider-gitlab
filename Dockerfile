@@ -16,7 +16,7 @@ RUN chmod +x deploy/update-version.sh  \
     && deploy/update-version.sh version.yaml \
     && make swag \
     && CGO_ENABLED=0 go build -o main \
-    && make test
+    && make check
 
 ARG REG=docker.io
 FROM ${REG}/library/alpine:3.14 AS final
