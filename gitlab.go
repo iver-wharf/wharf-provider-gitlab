@@ -51,14 +51,29 @@ func (client *gitLabClient) listProjects(page int) ([]*gitlab.Project, gitLabPag
 }
 
 func (client *gitLabClient) getProject(groupName string, projectName string) (*gitlab.Project, error) {
-	project, _, err := client.Projects.GetProject(fmt.Sprintf("%v/%v", groupName, projectName), nil, nil)
+	project, resp, err := client.Projects.GetProject(fmt.Sprintf("%v/%v", groupName, projectName), nil, nil)
+	ev := log.Error().
+		WithString("group", groupName).
+		WithString("project", projectName)
+
+	if resp == nil {
+		ev.WithError(err).Message("Failed to get project.")
+		return nil, err
+	}
+
+	ev = ev.WithString("status", resp.Status)
+
+	if resp != nil && resp.StatusCode != http.StatusNotFound {
+		return nil, err
+	}
 	if err != nil {
-		ev := log.Error().
-			WithError(err).
-			WithString("group", groupName).
-			WithString("project", projectName)
-		ev.Message("Failed to get project.")
+		ev.WithError(err).Message("Failed to get project.")
 		projects, _, err := client.Search.Projects(projectName, &gitlab.SearchOptions{})
+		if err != nil {
+			ev.WithError(err).Message("Failed searching by project name as fallback.")
+			return nil, err
+		}
+
 		if err == nil {
 			for _, proj := range projects {
 				if strings.EqualFold(proj.Namespace.FullPath, groupName) {
@@ -66,8 +81,8 @@ func (client *gitLabClient) getProject(groupName string, projectName string) (*g
 				}
 			}
 		}
-		ev.Message("Failed searching by project name as fallback.")
-		return nil, err
+
+		return nil, fmt.Errorf("no project found matching: %s/%s", groupName, projectName)
 	}
 
 	return project, nil
