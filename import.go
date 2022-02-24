@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/iver-wharf/wharf-api-client-go/pkg/wharfapi"
+	"github.com/iver-wharf/wharf-api-client-go/v2/pkg/model/request"
+	"github.com/iver-wharf/wharf-api-client-go/v2/pkg/model/response"
+	"github.com/iver-wharf/wharf-api-client-go/v2/pkg/wharfapi"
 	"github.com/iver-wharf/wharf-core/pkg/ginutil"
 	"github.com/xanzy/go-gitlab"
 )
@@ -51,23 +53,28 @@ func (m importModule) runGitLabHandler(c *gin.Context) {
 	}
 
 	var detail string
-	switch i.whatToImport() {
-	case importProject:
-		err = importer.importProject(i.Group, i.Project)
-		detail = fmt.Sprintf("Unable to import GitLab project %q", i.Project)
-	case importGroup:
-		err = importer.importGroup(i.Group)
-		detail = fmt.Sprintf("Unable to import GitLab group %q", i.Group)
-	case importAllGroups:
-		err = importer.importAll()
-		detail = "Unable to import GitLab groups"
-	default:
-		err = fmt.Errorf("invalid import data")
-		detail = fmt.Sprintf("You need to specify either group, group and project, or neither. "+
-			"Specifying only project is invalid. "+
-			"Group=%q, Project=%q", i.Group, i.Project)
-		ginutil.WriteInvalidParamError(c, err, "Group or Project", detail)
-		return
+	if i.ProjectID == 0 {
+		switch i.whatToImport() {
+		case importProject:
+			err = importer.importProject(i.Group, i.Project)
+			detail = fmt.Sprintf("Unable to import GitLab project %q", i.Project)
+		case importGroup:
+			err = importer.importGroup(i.Group)
+			detail = fmt.Sprintf("Unable to import GitLab group %q", i.Group)
+		case importAllGroups:
+			err = importer.importAll()
+			detail = "Unable to import GitLab groups"
+		default:
+			err = fmt.Errorf("invalid import data")
+			detail = fmt.Sprintf("You need to specify either group, group and project, or neither. "+
+				"Specifying only project is invalid. "+
+				"Group=%q, Project=%q", i.Group, i.Project)
+			ginutil.WriteInvalidParamError(c, err, "Group or Project", detail)
+			return
+		}
+	} else {
+		err = importer.refreshProject(i.TokenID, i.ProviderID, i.ProjectID)
+		detail = fmt.Sprintf("Unable to refresh GitLab project %q", i.Project)
 	}
 
 	if err != nil {
@@ -84,7 +91,7 @@ type gitLabImporter struct {
 	mapper       mapper
 }
 
-func newGitLabImporterWritesProblem(c *gin.Context, wharfClient wharfapi.Client, importData *Import) (*gitLabImporter, bool) {
+func newGitLabImporterWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetcher, importData *Import) (*gitLabImporter, bool) {
 	token, ok := obtainTokenWritesProblem(c, wharfClient, importData)
 	if !ok {
 		return nil, false
@@ -107,9 +114,9 @@ func newGitLabImporterWritesProblem(c *gin.Context, wharfClient wharfapi.Client,
 	}, true
 }
 
-func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfapi.Client, importData *Import) (wharfapi.Token, bool) {
+func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetcher, importData *Import) (response.Token, bool) {
 	if importData.TokenID != 0 {
-		token, err := wharfClient.GetTokenByID(importData.TokenID)
+		token, err := wharfClient.GetToken(importData.TokenID)
 		if err != nil {
 			ginutil.WriteAPIClientReadError(c, err,
 				fmt.Sprintf(
@@ -122,54 +129,89 @@ func obtainTokenWritesProblem(c *gin.Context, wharfClient wharfapi.Client, impor
 		}
 
 		if err != nil {
-			return wharfapi.Token{}, false
+			return response.Token{}, false
 		}
 		return token, true
 	}
 
-	token, err := wharfClient.GetToken(importData.Token, "")
-	if authErr, ok := err.(*wharfapi.AuthError); ok {
-		c.Header("WWW-Authenticate", authErr.Realm)
-		ginutil.WriteUnauthorizedError(c, authErr,
-			"You are not allowed to use this functionality. Please make sure your token is correct.")
-		return wharfapi.Token{}, false
+	search := wharfapi.TokenSearch{
+		UserName: &importData.User,
 	}
-
-	if err != nil || token.TokenID == 0 {
-		token, err = wharfClient.PostToken(wharfapi.Token{Token: importData.Token})
+	tokens, err := wharfClient.GetTokenList(search)
+	if err != nil {
+		ginutil.WriteAPIClientReadError(c, err,
+			"Unable to get token from the API. This issue might be temporary. Please try again later.")
+		log.Error().WithError(err).Message("Unable to get token.")
+		return response.Token{}, false
+	}
+	token, ok := findTokenByTokenString(tokens.List, importData.Token)
+	if !ok {
+		token, err = wharfClient.CreateToken(request.Token{Token: importData.Token, UserName: importData.User})
+		if authErr, ok := err.(*wharfapi.AuthError); ok {
+			c.Header("WWW-Authenticate", authErr.Realm)
+			ginutil.WriteUnauthorizedError(c, authErr,
+				"You are not allowed to use this functionality. Please make sure your token is correct.")
+			return response.Token{}, false
+		}
 		if err != nil {
 			ginutil.WriteAPIClientWriteError(c, err,
 				"Unable to post token to the API. This issue might be temporary. Please try again later.")
 			log.Error().WithError(err).Message("Unable to post token.")
-			return wharfapi.Token{}, false
+			return response.Token{}, false
 		}
-		log.Debug().WithUint("tokenId", token.TokenID).Message("Successfully created token.")
 	}
+	log.Debug().WithUint("tokenId", token.TokenID).Message("Successfully created token.")
 	return token, true
 }
 
-func obtainProviderWritesProblem(c *gin.Context, wharfClient wharfapi.Client, tokenID uint, importData *Import) (wharfapi.Provider, bool) {
+func findTokenByTokenString(tokens []response.Token, tokenStr string) (response.Token, bool) {
+	token, ok := response.Token{}, false
+	for _, t := range tokens {
+		if t.Token == tokenStr {
+			token = t
+			ok = true
+			break
+		}
+	}
+	return token, ok
+}
+
+func obtainProviderWritesProblem(c *gin.Context, wharfClient wharfClientAPIFetcher, tokenID uint, importData *Import) (response.Provider, bool) {
 	if importData.ProviderID != 0 {
-		provider, err := wharfClient.GetProviderByID(importData.ProviderID)
+		provider, err := wharfClient.GetProvider(importData.ProviderID)
 		if err != nil || provider.ProviderID == 0 {
 			ginutil.WriteAPIClientReadError(c, err,
 				fmt.Sprintf("Unable to get provider by ID %d.", importData.ProjectID))
 			log.Error().WithError(err).Message("Unable to get provider.")
-			return wharfapi.Provider{}, false
+			return response.Provider{}, false
 		}
 		return provider, true
 	}
 
-	provider, err := wharfClient.GetProvider(ProviderName, importData.URL, "", tokenID)
-	if err != nil || provider.ProviderID == 0 {
-		if authErr, ok := err.(*wharfapi.AuthError); ok {
-			c.Header("WWW-Authenticate", authErr.Realm)
-			ginutil.WriteUnauthorizedError(c, authErr,
-				"You are not allowed to get a provider. Please make sure your token is correct.")
-			return wharfapi.Provider{}, false
-		}
+	providerName := ProviderName
+	search := wharfapi.ProviderSearch{
+		Name: &providerName,
+		URL:  &importData.URL,
+	}
 
-		provider, err = wharfClient.PostProvider(wharfapi.Provider{
+	var provider response.Provider
+	providers, err := wharfClient.GetProviderList(search)
+	if authErr, ok := err.(*wharfapi.AuthError); ok {
+		c.Header("WWW-Authenticate", authErr.Realm)
+		ginutil.WriteUnauthorizedError(c, authErr,
+			"You are not allowed to use this functionality. Please make sure your token is correct.")
+		return response.Provider{}, false
+	}
+	if err != nil {
+		ginutil.WriteAPIClientWriteError(c, err,
+			"Unable to get provider from the API. This issue might be temporary. Please try again later.")
+		log.Error().WithError(err).Message("Unable to get provider.")
+		return response.Provider{}, false
+	}
+
+	provider, ok := findProviderByTokenID(providers.List, tokenID)
+	if !ok {
+		provider, err = wharfClient.CreateProvider(request.Provider{
 			Name:    ProviderName,
 			URL:     importData.URL,
 			TokenID: tokenID})
@@ -177,15 +219,27 @@ func obtainProviderWritesProblem(c *gin.Context, wharfClient wharfapi.Client, to
 			ginutil.WriteAPIClientWriteError(c, err,
 				"Unable to post provider to the API. This issue might be temporary. Please try again later.")
 			log.Error().WithError(err).Message("Unable to create provider.")
-			return wharfapi.Provider{}, false
+			return response.Provider{}, false
 		}
 	}
 
 	log.Debug().
-		WithString("provider", provider.Name).
+		WithString("provider", string(provider.Name)).
 		WithString("providerUrl", provider.URL).
 		Message("Provider from DB.")
 	return provider, true
+}
+
+func findProviderByTokenID(providers []response.Provider, tokenID uint) (response.Provider, bool) {
+	provider, ok := response.Provider{}, false
+	for _, p := range providers {
+		if p.TokenID == tokenID {
+			provider = p
+			ok = true
+			break
+		}
+	}
+	return provider, ok
 }
 
 func (importer *gitLabImporter) importProject(groupName string, projectName string) error {
@@ -195,7 +249,7 @@ func (importer *gitLabImporter) importProject(groupName string, projectName stri
 		return err
 	}
 
-	wharfProject, err := importer.putProject(*gitLabProject)
+	wharfProject, err := importer.postProject(*gitLabProject)
 	if err != nil {
 		log.Error().
 			WithError(err).
@@ -229,7 +283,7 @@ func (importer *gitLabImporter) importAll() error {
 func (importer gitLabImporter) importProjects(projects []*gitlab.Project) string {
 	var errMessage string
 	for _, project := range projects {
-		wharfProject, err := importer.putProject(*project)
+		wharfProject, err := importer.postProject(*project)
 		if err != nil {
 			log.Error().
 				WithError(err).
@@ -251,18 +305,59 @@ func (importer gitLabImporter) importProjects(projects []*gitlab.Project) string
 	return errMessage
 }
 
-func (importer gitLabImporter) putProject(gitLabProject gitlab.Project) (wharfapi.Project, error) {
+func (importer gitLabImporter) refreshProject(tokenID, providerID, projectID uint) error {
+	proj, err := importer.wharfClient.GetProject(projectID)
+	if err != nil {
+		log.Error().
+			WithUint("projectID", projectID).
+			Message("Unable to fetch project from Wharf database.")
+		return err
+	}
+	// TODO: Use remote project ID if available.
+	gitLabProject, err := importer.gitLabClient.getProject(proj.GroupName, proj.Name)
+	if err != nil {
+		log.Error().
+			WithStringf("wharfProject", "%s/%s", proj.GroupName, proj.Name).
+			Message("Unable to get project from GitLab.")
+		return err
+	}
+
 	buildDef, err := importer.gitLabClient.getBuildDefinitionIfExists(gitLabProject.ID, gitLabProject.DefaultBranch)
 	if err != nil {
-		return wharfapi.Project{}, err
+		return err
+	}
+	groupName := ""
+	if gitLabProject.Namespace != nil {
+		groupName = gitLabProject.Namespace.FullPath
+	}
+	_, err = importer.wharfClient.UpdateProject(projectID, request.ProjectUpdate{
+		Name:            gitLabProject.Name,
+		BuildDefinition: buildDef,
+		Description:     gitLabProject.Description,
+		AvatarURL:       gitLabProject.AvatarURL,
+		GitURL:          gitLabProject.SSHURLToRepo,
+		TokenID:         tokenID,
+		ProviderID:      providerID,
+		GroupName:       groupName,
+	})
+	if err == nil {
+		importer.refreshBranches(projectID, gitLabProject.ID)
+	}
+	return err
+}
+
+func (importer gitLabImporter) postProject(gitLabProject gitlab.Project) (response.Project, error) {
+	buildDef, err := importer.gitLabClient.getBuildDefinitionIfExists(gitLabProject.ID, gitLabProject.DefaultBranch)
+	if err != nil {
+		return response.Project{}, err
 	}
 
 	wharfProject := importer.mapper.mapProjectToWharfEntity(gitLabProject, buildDef)
 
-	dbProject, err := importer.wharfClient.PutProject(wharfProject)
+	dbProject, err := importer.wharfClient.CreateProject(wharfProject)
 	if err != nil {
 		log.Error().WithError(err).Message("Unable to create project.")
-		return wharfapi.Project{}, err
+		return response.Project{}, err
 	}
 
 	return dbProject, nil
@@ -278,10 +373,9 @@ func (importer gitLabImporter) importBranches(wharfProjectID uint, gitLabProject
 			return err
 		}
 
-		if len(branches) > 0 {
-			wharfBranches := importer.mapper.mapBranchesToWharfEntity(wharfProjectID, branches)
-
-			_, err = importer.wharfClient.PutBranches(wharfBranches)
+		for _, branch := range branches {
+			b := importer.mapper.mapBranchToWharfEntity(*branch)
+			_, err := importer.wharfClient.CreateProjectBranch(wharfProjectID, b)
 			if err != nil {
 				log.Error().WithError(err).Message("Failed to reset branches.")
 				errMessage += err.Error()
@@ -296,4 +390,25 @@ func (importer gitLabImporter) importBranches(wharfProjectID uint, gitLabProject
 	}
 
 	return nil
+}
+
+func (importer gitLabImporter) refreshBranches(wharfProjectID uint, gitLabProjectID int) error {
+	page := 0
+	var allBranches []request.Branch
+	for page >= 0 {
+		branches, paging, err := importer.gitLabClient.getBranches(gitLabProjectID, page)
+		if err != nil {
+			log.Error().WithError(err).Message("Failed to get branches.")
+			return err
+		}
+
+		for _, branch := range branches {
+			allBranches = append(allBranches, importer.mapper.mapBranchToWharfEntity(*branch))
+		}
+
+		page = paging.next()
+	}
+
+	_, err := importer.wharfClient.UpdateProjectBranchList(wharfProjectID, allBranches)
+	return err
 }

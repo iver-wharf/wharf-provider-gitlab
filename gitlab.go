@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/iver-wharf/wharf-core/pkg/ginutil"
@@ -50,52 +51,72 @@ func (client *gitLabClient) listProjects(page int) ([]*gitlab.Project, gitLabPag
 }
 
 func (client *gitLabClient) getProject(groupName string, projectName string) (*gitlab.Project, error) {
-	projects, _, err := client.listProjectsFromGroup(fmt.Sprintf("%v/%v", groupName, projectName), 0)
-	if err != nil {
-		log.Error().
-			WithError(err).
-			WithStringf("project", "%s/%s", groupName, projectName).
-			Message("Failed to list projects for project name and group.")
+	project, resp, err := client.Projects.GetProject(fmt.Sprintf("%v/%v", groupName, projectName), nil, nil)
+	ev := log.Error().
+		WithString("group", groupName).
+		WithString("project", projectName)
+
+	if resp == nil {
+		ev.WithError(err).Message("Failed to get project.")
 		return nil, err
 	}
 
-	var filteredProjects []*gitlab.Project
-	for _, p := range projects {
-		if p.Name == projectName || p.Path == projectName {
-			filteredProjects = append(filteredProjects, p)
+	ev = ev.WithString("status", resp.Status)
+
+	if resp != nil && resp.StatusCode != http.StatusNotFound {
+		return nil, err
+	}
+	if err != nil {
+		ev.WithError(err).Message("Failed to get project.")
+		projects, _, err := client.Search.Projects(projectName, &gitlab.SearchOptions{})
+		if err != nil {
+			ev.WithError(err).Message("Failed searching by project name as fallback.")
+			return nil, err
 		}
+
+		if err == nil {
+			for _, proj := range projects {
+				if strings.EqualFold(proj.Namespace.FullPath, groupName) {
+					return proj, nil
+				}
+			}
+		}
+
+		return nil, fmt.Errorf("no project found matching: %s/%s", groupName, projectName)
 	}
 
-	if len(filteredProjects) == 1 {
-		return filteredProjects[0], nil
-	}
-
-	log.Info().WithInt("projectCount", len(filteredProjects)).
-		WithStringf("project", "%s/%s", groupName, projectName).
-		Message("Invalid projects count.")
-
-	return nil, fmt.Errorf("project search %v/%v did not match 1 project, but %d", groupName, projectName, len(filteredProjects))
+	return project, nil
 }
 
 func (client *gitLabClient) listProjectsFromGroup(groupName string, page int) ([]*gitlab.Project, gitLabPaging, error) {
-	opt := gitlab.ListProjectsOptions{
-		OrderBy:          gitlab.String("id"),
-		SearchNamespaces: gitlab.Bool(true),
-		Search:           gitlab.String(groupName),
+	opt := gitlab.ListGroupProjectsOptions{
+		OrderBy: gitlab.String("id"),
 	}
 	if page != 0 {
 		opt.Page = page
 	}
 
-	projects, resp, err := client.Projects.ListProjects(&opt)
+	log.Debug().
+		WithString("groupName", groupName).
+		WithInt("page", page).
+		Message("Listing projects for group.")
+
+	projects, resp, err := client.Groups.ListGroupProjects(groupName, &opt, nil)
 	if err != nil {
 		log.Error().
 			WithError(err).
+			WithString("URL", resp.Request.URL.String()).
+			WithString("status", resp.Status).
 			WithString("group", groupName).
 			WithInt("page", page).
 			Message("Failed to list projects for group.")
 		return nil, mapToPaging(resp), err
 	}
+
+	log.Debug().
+		WithString("groupName", groupName).
+		WithInt("page", page).
+		Message("Successfully listed projects for group.")
 
 	return projects, mapToPaging(resp), nil
 }

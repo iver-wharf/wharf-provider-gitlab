@@ -41,9 +41,9 @@ func (p gitLabPaging) next() int {
 }
 
 type getProjects func(int) ([]*gitlab.Project, gitLabPaging, error)
-type putProjects func([]*gitlab.Project) string
+type postProjects func([]*gitlab.Project) string
 
-func importPaginatedProjects(get getProjects, put putProjects) error {
+func importPaginatedProjects(get getProjects, post postProjects) error {
 	errMessage := ""
 	page := 0
 	for page >= 0 {
@@ -54,7 +54,7 @@ func importPaginatedProjects(get getProjects, put putProjects) error {
 		}
 
 		if len(projects) > 0 {
-			errMessage += put(projects)
+			errMessage += post(projects)
 		}
 
 		page = paging.next()
