@@ -11,11 +11,11 @@ type gitLabFetcher interface {
 }
 
 type gitLabRepoFilesReader interface {
-	GetRawFile(pid interface{}, fileName string, opt *gitlab.GetRawFileOptions, options ...gitlab.RequestOptionFunc) ([]byte, *gitlab.Response, error)
+	GetRawFile(pid any, fileName string, opt *gitlab.GetRawFileOptions, options ...gitlab.RequestOptionFunc) ([]byte, *gitlab.Response, error)
 }
 
 type gitLabBranchesReader interface {
-	ListBranches(pid interface{}, opts *gitlab.ListBranchesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.Branch, *gitlab.Response, error)
+	ListBranches(pid any, opts *gitlab.ListBranchesOptions, options ...gitlab.RequestOptionFunc) ([]*gitlab.Branch, *gitlab.Response, error)
 }
 
 type gitLabProjectsReader interface {
