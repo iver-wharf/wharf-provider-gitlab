@@ -19,10 +19,21 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 
 - Added support for `github.com/iver-wharf/wharf-api` v5.0.0. (#43)
 
-- Changed version of `github.com/iver-wharf/wharf-api-client-go`
-  from v1.3.1 -> v2.0.0. (#26, #43)
+- Changed version of dependencies:
+
+  - `github.com/gin-gonic/gin` from v1.7.4 to v1.7.7 (#46)
+  - `github.com/iver-wharf/wharf-api-client-go` from v1.3.1 to v2.0.0 (#26, #43)
+  - `github.com/swaggo/gin-swagger` from v1.3.1 to v1.4.3 (#46)
+  - `github.com/swaggo/swag` from v1.7.1 to v1.8.1 (#46)
 
 - Added GitLab's internal project ID when adding project to database. (#43)
+
+- Changed Go runtime from v1.16 to v1.18. (#46)
+
+- Changed version of Docker base images:
+
+  - Alpine: 3.14 -> 3.15 (#46)
+  - Golang: 1.16 -> 1.18 (#46)
 
 ## v1.3.0 (2022-01-03)
 

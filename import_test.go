@@ -253,7 +253,7 @@ func getSampleGitLabPaging(count int) gitLabPaging {
 	}
 }
 
-func anyOfType(obj interface{}) mock.AnythingOfTypeArgument {
+func anyOfType(obj any) mock.AnythingOfTypeArgument {
 	return mock.AnythingOfType(reflect.TypeOf(obj).Name())
 }
 
