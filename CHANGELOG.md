@@ -16,7 +16,7 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 
 - Changed version of dependencies:
 
-  - `github.com/iver-wharf/wharf-api-client-go` from v2.0.0 to v2.2.0 (#48)
+  - `github.com/iver-wharf/wharf-api-client-go` from v2.0.0 to v2.2.1 (#48)
 
 - Fixed failing project import when importing a single project. (#48)
 
