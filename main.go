@@ -73,7 +73,7 @@ func main() {
 	r := gin.New()
 	r.Use(
 		ginutil.DefaultLoggerHandler,
-		ginutil.RecoverProblem,
+		//ginutil.RecoverProblem,
 	)
 
 	if config.HTTP.CORS.AllowAllOrigins {

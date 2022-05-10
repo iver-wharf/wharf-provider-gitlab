@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -56,33 +57,36 @@ func (client *gitLabClient) getProject(groupName string, projectName string) (*g
 		WithString("group", groupName).
 		WithString("project", projectName)
 
+	if err != nil {
+		ev.WithError(err).Message("Failed to get project.")
+		return nil, err
+	}
 	if resp == nil {
+		err := errors.New("nil response")
 		ev.WithError(err).Message("Failed to get project.")
 		return nil, err
 	}
 
 	ev = ev.WithString("status", resp.Status)
 
-	if resp != nil && resp.StatusCode != http.StatusNotFound {
-		return nil, err
-	}
-	if err != nil {
-		ev.WithError(err).Message("Failed to get project.")
+	if resp.StatusCode == http.StatusNotFound {
+		ev.Message("Project not found.")
 		projects, _, err := client.Search.Projects(projectName, &gitlab.SearchOptions{})
 		if err != nil {
 			ev.WithError(err).Message("Failed searching by project name as fallback.")
 			return nil, err
 		}
-
-		if err == nil {
-			for _, proj := range projects {
-				if strings.EqualFold(proj.Namespace.FullPath, groupName) {
-					return proj, nil
-				}
+		for _, proj := range projects {
+			if strings.EqualFold(proj.Namespace.FullPath, groupName) {
+				return proj, nil
 			}
 		}
 
 		return nil, fmt.Errorf("no project found matching: %s/%s", groupName, projectName)
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("non-2xx status code: %s", resp.Status)
 	}
 
 	return project, nil
