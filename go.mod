@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/gin-contrib/cors v1.3.1
 	github.com/gin-gonic/gin v1.7.7
-	github.com/iver-wharf/wharf-api-client-go/v2 v2.2.1-0.20220510170556-f5c43a56e885
+	github.com/iver-wharf/wharf-api-client-go/v2 v2.2.1
 	github.com/iver-wharf/wharf-core v1.3.0
 	github.com/stretchr/testify v1.7.0
 	github.com/swaggo/files v0.0.0-20210815190702-a29dd2bc99b2
