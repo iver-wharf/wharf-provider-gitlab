@@ -47,7 +47,7 @@ func (m importModule) runGitLabHandler(c *gin.Context) {
 		APIURL:     m.config.API.URL,
 	}
 
-	importer, ok := newGitLabImporterWritesProblem(c, wharfClient, &i)
+	importer, ok := newGitLabImporterWritesProblem(c, &wharfClient, &i)
 	if !ok {
 		return
 	}
