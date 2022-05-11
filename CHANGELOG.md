@@ -12,7 +12,7 @@ This project tries to follow [SemVer 2.0.0](https://semver.org/).
 	https://changelog.md/
 -->
 
-## v2.0.1 (2022-05-10)
+## v2.0.1 (2022-05-11)
 
 - Changed version of dependencies:
 
